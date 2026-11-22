@@ -1,0 +1,22 @@
+name: Request hosting deployment
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  request-deployment:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger approved deployment
+        env:
+          GH_TOKEN: ${{ secrets.DEPLOY_TRIGGER_TOKEN }}
+          PROJECT_ID: elimutaifa-labs
+        run: |
+          curl --fail-with-body --silent --show-error \
+            -X POST \
+            -H "Accept: application/vnd.github+json" \
+            -H "Authorization: Bearer $GH_TOKEN" \
+            https://api.github.com/repos/saidmnuby/mitandao/actions/workflows/deploy.yml/dispatches \
+            -d "{\"ref\":\"main\",\"inputs\":{\"project\":\"$PROJECT_ID\",\"source_sha\":\"$GITHUB_SHA\"}}"
