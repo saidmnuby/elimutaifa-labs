@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\PlatformAdminController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', fn () => auth()->check()
@@ -18,4 +19,12 @@ Route::middleware('guest')->group(function () {
 Route::middleware('auth')->group(function () {
     Route::get('/dashboard', DashboardController::class)->name('dashboard');
     Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
+
+    Route::prefix('admin')->name('admin.')->middleware('can:manage-platform')->group(function () {
+        Route::get('/developers', [PlatformAdminController::class, 'developers'])->name('developers');
+        Route::patch('/developers/{user}/status', [PlatformAdminController::class, 'updateDeveloperStatus'])->name('developers.status');
+        Route::get('/projects', [PlatformAdminController::class, 'projects'])->name('projects');
+        Route::get('/projects/create', [PlatformAdminController::class, 'createProject'])->name('projects.create');
+        Route::post('/projects', [PlatformAdminController::class, 'storeProject'])->name('projects.store');
+    });
 });
