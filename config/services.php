@@ -35,4 +35,10 @@ return [
         ],
     ],
 
+    'github' => [
+        'client_id' => env('GITHUB_OAUTH_CLIENT_ID'),
+        'client_secret' => env('GITHUB_OAUTH_CLIENT_SECRET'),
+        'redirect_uri' => env('GITHUB_OAUTH_REDIRECT_URI'),
+    ],
+
 ];

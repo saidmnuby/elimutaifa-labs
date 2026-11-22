@@ -26,6 +26,9 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         Gate::define('manage-platform', fn (User $user) => $user->isAdmin());
+        Gate::define('submit-project', fn (User $user) =>
+            $user->role === User::ROLE_DEVELOPER && $user->status === User::STATUS_ACTIVE
+        );
 
         RateLimiter::for('login', function (Request $request) {
             $email = Str::lower((string) $request->input('email'));
@@ -35,6 +38,10 @@ class AppServiceProvider extends ServiceProvider
 
         RateLimiter::for('register', fn (Request $request) =>
             Limit::perHour(3)->by($request->ip())
+        );
+
+        RateLimiter::for('github-verify', fn (Request $request) =>
+            Limit::perMinute(30)->by($request->ip())
         );
     }
 }

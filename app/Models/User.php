@@ -17,6 +17,7 @@ class User extends Authenticatable
     public const STATUS_PENDING = 'pending';
     public const STATUS_ACTIVE = 'active';
     public const STATUS_SUSPENDED = 'suspended';
+    public const STATUS_REJECTED = 'rejected';
 
     /**
      * The attributes that are mass assignable.
@@ -27,6 +28,8 @@ class User extends Authenticatable
         'name',
         'email',
         'github_username',
+        'github_id',
+        'github_verified_at',
         'password',
     ];
 
@@ -49,6 +52,7 @@ class User extends Authenticatable
     {
         return [
             'email_verified_at' => 'datetime',
+            'github_verified_at' => 'datetime',
             'password' => 'hashed',
         ];
     }

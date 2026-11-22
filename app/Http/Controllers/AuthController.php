@@ -7,6 +7,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Validation\ValidationException;
 use Illuminate\Validation\Rules\Password;
 use Illuminate\View\View;
 
@@ -31,12 +32,28 @@ class AuthController extends Controller
             'password' => ['required', 'confirmed', Password::min(12)->letters()->numbers()],
         ]);
 
+        $githubProfile = $request->session()->get('github_verified_profile');
+        $githubProfile = is_array($githubProfile) ? $githubProfile : null;
+
+        if (! empty($validated['github_username'])
+            && (! $githubProfile
+                || ! isset($githubProfile['id'], $githubProfile['login'])
+                || mb_strtolower($validated['github_username']) !== mb_strtolower($githubProfile['login']))) {
+            throw ValidationException::withMessages([
+                'github_username' => 'Connect the GitHub account you entered to verify that you own it, or leave this field blank.',
+            ]);
+        }
+
         $user = User::create([
             'name' => $validated['name'],
             'email' => mb_strtolower($validated['email']),
-            'github_username' => $validated['github_username'] ?? null,
+            'github_username' => $githubProfile && ! empty($validated['github_username']) ? $githubProfile['login'] : null,
+            'github_id' => $githubProfile && ! empty($validated['github_username']) ? $githubProfile['id'] : null,
+            'github_verified_at' => $githubProfile && ! empty($validated['github_username']) ? now() : null,
             'password' => Hash::make($validated['password']),
         ]);
+
+        $request->session()->forget('github_verified_profile');
 
         Auth::login($user);
         $request->session()->regenerate();
@@ -59,12 +76,15 @@ class AuthController extends Controller
                 ->onlyInput('email');
         }
 
-        if (auth()->user()->status === User::STATUS_SUSPENDED) {
+        if (in_array(auth()->user()->status, [User::STATUS_SUSPENDED, User::STATUS_REJECTED], true)) {
+            $message = auth()->user()->status === User::STATUS_REJECTED
+                ? 'Usajili wa akaunti hii haujaidhinishwa.'
+                : 'Akaunti hii imesimamishwa. Wasiliana na admin.';
             Auth::logout();
             $request->session()->invalidate();
             $request->session()->regenerateToken();
 
-            return back()->withErrors(['email' => 'Akaunti hii imesimamishwa. Wasiliana na admin.']);
+            return back()->withErrors(['email' => $message]);
         }
 
         $request->session()->regenerate();

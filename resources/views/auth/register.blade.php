@@ -21,8 +21,15 @@
                 @error('email')<div class="form-error">{{ $message }}</div>@enderror
             </div>
             <div class="field">
-                <label for="github_username">GitHub username <span class="muted">(optional)</span></label>
-                <input id="github_username" name="github_username" value="{{ old('github_username') }}" autocomplete="username" maxlength="39" placeholder="your-github-name">
+                <label for="github_username">GitHub account <span class="muted">(optional)</span></label>
+                <input id="github_username" name="github_username" value="{{ session('github_verified_profile.login', old('github_username')) }}" autocomplete="username" maxlength="39" placeholder="Connect your GitHub account" @if (session('github_verified_profile')) readonly @endif>
+                @if (session('github_verified_profile'))
+                    <small class="badge active" style="margin-top:7px">Ownership verified with GitHub</small>
+                    <a class="button secondary small" style="margin-top:8px" href="{{ route('github.oauth.register') }}">Use a different GitHub account</a>
+                @else
+                    <small class="muted">Optional. Connect GitHub first if you want to add a username. This confirms account ownership and does not grant repository access.</small>
+                    <a class="button secondary small" style="margin-top:8px" href="{{ route('github.oauth.register') }}">Verify ownership with GitHub</a>
+                @endif
                 @error('github_username')<div class="form-error">{{ $message }}</div>@enderror
             </div>
             <div class="field">

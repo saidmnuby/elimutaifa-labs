@@ -1,0 +1,248 @@
+<?php
+
+namespace App\Http\Controllers;
+
+use App\Models\AuditEvent;
+use App\Models\Project;
+use App\Models\ProjectDatabase;
+use App\Models\ProjectDatabaseRequest;
+use App\Models\ServiceModule;
+use App\Models\User;
+use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
+use Illuminate\View\View;
+use Throwable;
+
+class DatabaseWorkspaceController extends Controller
+{
+    public function requestForm(Request $request): View
+    {
+        abort_unless(ServiceModule::where('key', 'database')->where('is_enabled', true)->exists(), 404);
+
+        $projects = $request->user()->projects()
+            ->where('projects.status', '!=', Project::STATUS_SUSPENDED)
+            ->orderBy('name')
+            ->get();
+        $selectedProjectId = $projects->contains('id', (int) $request->query('project_id'))
+            ? (int) $request->query('project_id')
+            : null;
+
+        return view('database.request', [
+            'projects' => $projects,
+            'selectedProjectId' => $selectedProjectId,
+            'databasePrefix' => config('platform.cpanel_database_prefix'),
+        ]);
+    }
+
+    public function storeRequest(Request $request): RedirectResponse
+    {
+        $validated = $request->validate([
+            'project_id' => ['required', 'integer', 'exists:projects,id'],
+            'database_name_suffix' => ['required', 'string', 'max:55', 'regex:/^[A-Za-z][A-Za-z0-9_]*$/'],
+        ]);
+
+        $project = $request->user()->projects()
+            ->whereKey($validated['project_id'])
+            ->where('projects.status', '!=', Project::STATUS_SUSPENDED)
+            ->firstOrFail();
+        $this->authorizeProject($project);
+
+        $module = ServiceModule::where('key', 'database')->where('is_enabled', true)->firstOrFail();
+        $databaseRequest = ProjectDatabaseRequest::create([
+            'project_id' => $project->id,
+            'requested_name_suffix' => strtolower($validated['database_name_suffix']),
+            'status' => ProjectDatabaseRequest::STATUS_PENDING,
+        ]);
+
+        if (! $project->modules()->where('service_modules.id', $module->id)->exists()) {
+            $project->modules()->attach($module->id, ['status' => 'pending']);
+        }
+
+        AuditEvent::create([
+            'actor_id' => $request->user()->id,
+            'project_id' => $project->id,
+            'action' => 'database.requested',
+            'subject_type' => ProjectDatabaseRequest::class,
+            'subject_id' => (string) $databaseRequest->id,
+            'details' => ['project_id' => $project->id, 'requested_name_suffix' => $databaseRequest->requested_name_suffix],
+            'ip_address' => $request->ip(),
+        ]);
+
+        return redirect()->route('modules.show', 'database')->with('success', 'Ombi la database limetumwa kwa admin.');
+    }
+
+    public function show(ProjectDatabase $database): View
+    {
+        $this->authorizeDatabase($database);
+
+        $tables = [];
+        $connectionError = null;
+        try {
+            if (blank($database->encrypted_password)) {
+                $connectionError = 'Admin bado hajaweka password ya database kwenye portal.';
+            } else {
+                $tables = $this->listTables($this->connection($database));
+            }
+        } catch (Throwable) {
+            $connectionError = 'Muunganisho haukuweza kusomwa. Admin akague au ahifadhi upya taarifa za database.';
+        }
+
+        return view('database.show', [
+            'databaseRecord' => $database,
+            'tables' => $tables,
+            'connectionError' => $connectionError,
+            'queryRows' => [],
+            'queryColumns' => [],
+            'queryMessage' => null,
+            'queryError' => null,
+        ]);
+    }
+
+    public function browseTable(ProjectDatabase $database, string $table): View
+    {
+        $this->authorizeDatabase($database);
+        try {
+            $connection = $this->connection($database);
+            $tables = $this->listTables($connection);
+        } catch (Throwable) {
+            abort(503, 'Database connection could not be opened.');
+        }
+        abort_unless(in_array($table, $tables, true), 404);
+
+        try {
+            $columns = Schema::connection($this->connectionName($database))->getColumnListing($table);
+            $rows = $connection->table($table)->paginate(25);
+        } catch (Throwable) {
+            abort(503, 'Database table could not be opened.');
+        }
+
+        return view('database.table', compact('database', 'table', 'tables', 'columns', 'rows'));
+    }
+
+    public function runQuery(Request $request, ProjectDatabase $database): View
+    {
+        $this->authorizeDatabase($database);
+        $validated = $request->validate(['sql' => ['required', 'string', 'max:10000']]);
+        $sql = trim($validated['sql']);
+        $sql = rtrim($sql, ';');
+        $verb = strtoupper(strtok($sql, " \t\r\n"));
+        $readVerbs = ['SELECT', 'SHOW', 'DESCRIBE', 'DESC', 'EXPLAIN'];
+        $allowedStatement = preg_match('/^(?:SELECT\b|SHOW\s+(?:TABLES|COLUMNS|INDEX|INDEXES|CREATE\s+TABLE|TABLE\s+STATUS)\b|DESCRIBE\b|DESC\b|EXPLAIN\b|INSERT\s+INTO\b|UPDATE\b|DELETE\s+FROM\b|CREATE\s+(?:TABLE|VIEW|(?:UNIQUE\s+)?INDEX)\b|ALTER\s+TABLE\b|DROP\s+(?:TABLE|VIEW|INDEX)\b|TRUNCATE\s+TABLE\b|RENAME\s+TABLE\b)/i', $sql);
+        $tables = [];
+        $queryRows = [];
+        $queryColumns = [];
+        $queryMessage = null;
+        $queryError = null;
+        $connectionError = null;
+
+        if (! $allowedStatement
+            || str_contains($sql, ';')
+            || preg_match('/\b(?:CREATE|DROP)\s+DATABASE\b|\bUSE\b|\b(?:GRANT|REVOKE|SHUTDOWN)\b|\bSHOW\s+(?:DATABASES|SCHEMAS)\b|\bINTO\s+(?:OUTFILE|DUMPFILE)\b|\bLOAD\s+DATA\b|\bLOAD_FILE\s*\(|\b(?:mysql|information_schema|performance_schema|sys)\s*\./i', $sql)
+            || str_contains($sql, '/*') || preg_match('/--|(^|\s)#/', $sql)) {
+            $queryError = 'Query hairuhusiwi. Tumia command moja ndani ya database hii pekee.';
+        } else {
+            try {
+                $connection = $this->connection($database);
+                if (in_array($verb, $readVerbs, true)) {
+                    if ($verb === 'SELECT' && ! preg_match('/\bLIMIT\s+\d+/i', $sql)) {
+                        $sql .= ' LIMIT 100';
+                    }
+                    if ($verb === 'SELECT' && preg_match('/\bLIMIT\s+(\d+)/i', $sql, $limit) && (int) $limit[1] > 100) {
+                        throw new \InvalidArgumentException('Maximum query result is 100 rows.');
+                    }
+                    $queryRows = $connection->select($sql);
+                    $queryColumns = isset($queryRows[0]) ? array_keys((array) $queryRows[0]) : [];
+                    $queryMessage = count($queryRows).' rows returned (maximum 100).';
+                } else {
+                    $connection->unprepared($sql);
+                    $queryMessage = 'Database command completed.';
+                }
+            } catch (\InvalidArgumentException $exception) {
+                $queryError = $exception->getMessage();
+            } catch (Throwable) {
+                $queryError = 'Query failed. Check its syntax and the permissions of this project database user.';
+            }
+        }
+
+        try {
+            $tables = $this->listTables($this->connection($database));
+        } catch (Throwable) {
+            $connectionError = 'Muunganisho wa database umeshindikana. Admin akague taarifa za connection.';
+        }
+
+        return view('database.show', [
+            'databaseRecord' => $database,
+            'tables' => $tables,
+            'connectionError' => $connectionError,
+            'queryRows' => $queryRows,
+            'queryColumns' => $queryColumns,
+            'queryMessage' => $queryMessage,
+            'queryError' => $queryError,
+        ]);
+    }
+
+    private function authorizeProject(Project $project): void
+    {
+        $user = auth()->user();
+        abort_unless(
+            $user->role === User::ROLE_DEVELOPER
+                && $user->status === User::STATUS_ACTIVE
+                && $project->owner_id === $user->id
+                && $project->status !== Project::STATUS_SUSPENDED,
+            403
+        );
+    }
+
+    private function authorizeDatabase(ProjectDatabase $database): void
+    {
+        $this->authorizeProject($database->project()->firstOrFail());
+        abort_unless($database->status === 'active', 403);
+        abort_unless($database->project->modules()
+            ->where('service_modules.key', 'database')
+            ->where('service_modules.is_enabled', true)
+            ->wherePivot('status', 'active')
+            ->exists(), 403);
+    }
+
+    private function connectionName(ProjectDatabase $database): string
+    {
+        return 'developer_project_database_'.$database->id;
+    }
+
+    private function connection(ProjectDatabase $database)
+    {
+        $connectionName = $this->connectionName($database);
+        config(['database.connections.'.$connectionName => [
+            'driver' => 'mysql',
+            'host' => $database->host,
+            'port' => 3306,
+            'database' => $database->database_name,
+            'username' => $database->database_user,
+            'password' => $database->encrypted_password,
+            'unix_socket' => '',
+            'charset' => 'utf8mb4',
+            'collation' => 'utf8mb4_unicode_ci',
+            'prefix' => '',
+            'prefix_indexes' => true,
+            'strict' => true,
+            'engine' => null,
+            'options' => extension_loaded('pdo_mysql') ? [
+                \PDO::ATTR_EMULATE_PREPARES => false,
+            ] : [],
+        ]]);
+        DB::purge($connectionName);
+
+        return DB::connection($connectionName);
+    }
+
+    private function listTables($connection): array
+    {
+        return collect($connection->select('SHOW TABLES'))
+            ->map(fn ($row) => array_values((array) $row)[0] ?? null)
+            ->filter(fn ($table) => is_string($table))
+            ->values()
+            ->all();
+    }
+}

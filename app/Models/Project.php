@@ -12,6 +12,7 @@ class Project extends Model
     public const STATUS_PENDING = 'pending';
     public const STATUS_ACTIVE = 'active';
     public const STATUS_SUSPENDED = 'suspended';
+    public const STATUS_REJECTED = 'rejected';
 
     protected $fillable = ['owner_id', 'name', 'slug', 'description', 'status'];
 
@@ -40,6 +41,11 @@ class Project extends Model
     public function databases(): HasMany
     {
         return $this->hasMany(ProjectDatabase::class);
+    }
+
+    public function databaseRequests(): HasMany
+    {
+        return $this->hasMany(ProjectDatabaseRequest::class)->latest();
     }
 
     public function deployments(): HasMany

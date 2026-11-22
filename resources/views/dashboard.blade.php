@@ -30,9 +30,14 @@
     </section>
 @else
     <section class="panel">
-        <div class="section-head"><h2>Registered projects</h2><span class="badge">{{ $projectCount }} total</span></div>
+        <div class="section-head">
+            <div><h2>Your projects</h2><span class="muted">{{ $projectCount }} total</span></div>
+            @if (auth()->user()->status === \App\Models\User::STATUS_ACTIVE)
+                <a class="button" href="{{ route('projects.create') }}">Create project request</a>
+            @endif
+        </div>
         @if ($projects->isEmpty())
-            <div class="empty-state"><strong>No projects assigned yet</strong>Once your account is approved, the admin can register a repository and hosting services here.</div>
+            <div class="empty-state"><strong>No projects yet</strong>Start by submitting a project request. Admin will review it and assign its hosting folder.</div>
         @else
             <div class="project-list">
                 @foreach ($projects as $project)

@@ -15,15 +15,25 @@
         .success{padding:13px 16px;border-radius:9px;background:var(--mint);color:#067647;margin-bottom:18px}.validation-summary{padding:13px 16px;border-radius:9px;background:var(--red);color:#b42318;margin-bottom:18px}.table-wrap{overflow-x:auto}table{width:100%;border-collapse:collapse;min-width:720px}th,td{text-align:left;padding:12px;border-bottom:1px solid var(--line);vertical-align:top}th{font-size:12px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.04em}td{font-size:14px}.button.small{min-height:32px;padding:0 11px;font-size:12px}.button.secondary{background:#eef4ff;color:#1849a9}.button.danger{background:#b42318}.field select,.field textarea{display:block;width:100%;padding:10px 12px;border:1px solid #cfd4dc;border-radius:8px;background:#fff;font:inherit}.field textarea{min-height:84px;resize:vertical}.field select:focus,.field textarea:focus{outline:3px solid #d1e9ff;border-color:#84caff}.check-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.check-option{display:flex;gap:10px;align-items:flex-start;padding:13px;border:1px solid var(--line);border-radius:9px}.check-option input{margin-top:4px}.check-option strong{display:block}.check-option small{display:block;color:var(--muted);margin-top:2px}.pagination{display:flex;gap:12px;justify-content:center;margin-top:18px}
         @media(max-width:700px){.topbar{height:60px;padding:0 18px}.top-actions{gap:9px;font-size:13px}.top-actions .nav-links{gap:8px}main{margin-top:27px}.cards{grid-template-columns:1fr}.page-heading{display:block}h1{font-size:26px}.panel{padding:18px}.auth-panel{padding:24px}.check-grid{grid-template-columns:1fr}}
     </style>
+    <style>
+        .workspace-shell{width:min(1400px,calc(100% - 36px));margin:32px auto 60px;display:grid;grid-template-columns:230px minmax(0,1fr);gap:24px;align-items:start}
+        .workspace-shell main{width:100%;margin:0}
+        .developer-sidebar{position:sticky;top:20px;background:var(--paper);border:1px solid var(--line);border-radius:14px;padding:18px 12px;box-shadow:0 2px 8px #1018280a}
+        .admin-sidebar{position:sticky;top:20px;background:var(--paper);border:1px solid var(--line);border-radius:14px;padding:18px 12px;box-shadow:0 2px 8px #1018280a}
+        .sidebar-heading{padding:0 10px 10px;color:var(--muted);font-size:12px;font-weight:750;letter-spacing:.06em;text-transform:uppercase}
+        .sidebar-link{display:flex;align-items:center;gap:10px;padding:10px;border-radius:8px;color:var(--ink);font-weight:600}
+        .sidebar-link:hover,.sidebar-link.active{background:#eef4ff;color:var(--blue-dark);text-decoration:none}
+        .sidebar-icon{display:grid;place-items:center;width:24px;height:24px;border-radius:7px;background:#f2f4f7;color:var(--blue);font-size:12px;font-weight:800}
+        .badge.rejected{background:var(--red);color:#b42318}.cards.developer-metrics{grid-template-columns:repeat(auto-fit,minmax(145px,1fr))}
+        .live-check{display:block;margin-top:6px;font-size:12px}.live-check[hidden]{display:none}.live-check[data-state="checking"]{color:var(--muted)}.live-check[data-state="found"]{color:#067647;font-weight:700}.live-check[data-state="not-found"]{color:#b42318;font-weight:700}.live-check[data-state="unknown"]{color:#93370d}
+        @media(max-width:800px){.workspace-shell{grid-template-columns:1fr;gap:16px;margin-top:20px}.developer-sidebar,.admin-sidebar{position:static;display:flex;align-items:center;gap:6px;overflow-x:auto;padding:9px}.sidebar-heading{display:none}.sidebar-link{white-space:nowrap;font-size:13px}.workspace-shell main{margin:0 0 30px}}
+    </style>
 </head>
 <body>
     <header class="topbar">
-        <a class="brand" href="{{ auth()->check() ? route('dashboard') : route('login') }}"><span class="brand-mark">E</span>elimutaifa labs</a>
+        <a class="brand" href="{{ auth()->check() ? (auth()->user()->isAdmin() ? route('dashboard') : route('modules.show', 'github-deploy')) : route('login') }}"><span class="brand-mark">E</span>elimutaifa labs</a>
         <div class="top-actions">
             @auth
-                @if (auth()->user()->isAdmin())
-                    <nav class="nav-links"><a href="{{ route('admin.developers') }}">Developers</a><a href="{{ route('admin.projects') }}">Projects</a></nav>
-                @endif
                 <span>{{ auth()->user()->name }}</span>
                 <form method="post" action="{{ route('logout') }}">@csrf<button class="link-button" type="submit">Sign out</button></form>
             @else
@@ -31,11 +41,30 @@
             @endauth
         </div>
     </header>
+    @auth
+        <div class="workspace-shell">
+            <nav class="{{ auth()->user()->isAdmin() ? 'admin-sidebar' : 'developer-sidebar' }}" aria-label="{{ auth()->user()->isAdmin() ? 'Admin navigation' : 'Developer services' }}">
+                @if (auth()->user()->isAdmin())
+                    <div class="sidebar-heading">Admin</div>
+                    <a class="sidebar-link {{ request()->routeIs('dashboard') ? 'active' : '' }}" href="{{ route('dashboard') }}"><span class="sidebar-icon">O</span>Overview</a>
+                    <a class="sidebar-link {{ request()->routeIs('admin.developers*') ? 'active' : '' }}" href="{{ route('admin.developers') }}"><span class="sidebar-icon">D</span>Developers</a>
+                    <a class="sidebar-link {{ request()->routeIs('admin.projects*') ? 'active' : '' }}" href="{{ route('admin.projects') }}"><span class="sidebar-icon">P</span>Projects</a>
+                    <a class="sidebar-link {{ request()->routeIs('admin.database-requests*') ? 'active' : '' }}" href="{{ route('admin.database-requests') }}"><span class="sidebar-icon">DB</span>Database requests</a>
+                @else
+                    <div class="sidebar-heading">Developer services</div>
+                    <a class="sidebar-link {{ request()->route('moduleKey') === 'github-deploy' ? 'active' : '' }}" href="{{ route('modules.show', 'github-deploy') }}"><span class="sidebar-icon">G</span>GitHub deployment</a>
+                    <a class="sidebar-link {{ request()->route('moduleKey') === 'database' ? 'active' : '' }}" href="{{ route('modules.show', 'database') }}"><span class="sidebar-icon">D</span>Database</a>
+                @endif
+            </nav>
+    @endauth
     <main>
         @if (session('success'))<div class="success">{{ session('success') }}</div>@endif
-        @if ($errors->any())<div class="validation-summary">Please review the highlighted fields.</div>@endif
+        @if ($errors->any())<div class="validation-summary"><strong>Please review the highlighted fields.</strong>@foreach ($errors->all() as $error)<div>{{ $error }}</div>@endforeach</div>@endif
         @yield('content')
     </main>
+    @auth
+        </div>
+    @endauth
     <footer class="footer">Elimutaifa Labs · Project hosting services</footer>
 </body>
 </html>
