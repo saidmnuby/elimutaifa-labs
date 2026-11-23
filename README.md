@@ -1,75 +1,3 @@
-<<<<<<< HEAD
-<<<<<<< HEAD
-# elimutaifa-labs
-=======
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
-
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
-
-## About Laravel
-
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
-
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
-
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
-
-## Learning Laravel
-
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
-
-You may also try the [Laravel Bootcamp](https://bootcamp.laravel.com), where you will be guided through building a modern Laravel application from scratch.
-
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
-
-## Laravel Sponsors
-
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the [Laravel Partners program](https://partners.laravel.com).
-
-### Premium Partners
-
-- **[Vehikl](https://vehikl.com/)**
-- **[Tighten Co.](https://tighten.co)**
-- **[WebReinvent](https://webreinvent.com/)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel/)**
-- **[Cyber-Duck](https://cyber-duck.co.uk)**
-- **[DevSquad](https://devsquad.com/hire-laravel-developers)**
-- **[Jump24](https://jump24.co.uk)**
-- **[Redberry](https://redberry.international/laravel/)**
-- **[Active Logic](https://activelogic.com)**
-- **[byte5](https://byte5.de)**
-- **[OP.GG](https://op.gg)**
-
-## Contributing
-
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
-
-## Code of Conduct
-
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
-
-## Security Vulnerabilities
-
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
-
-## License
-
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
->>>>>>> e9c9bdc (NEW PROJECT THAT CONSERN WITH REMOTE DEPLOYMENT)
-=======
 # ElimuTaifa Labs
 
 ## What this business is
@@ -107,7 +35,7 @@ The goal is to make project setup repeatable and easy to manage as more develope
 - Added registration, login, logout, and a dashboard.
 - New accounts are developers awaiting administrator approval. Administrators can activate or suspend developers.
 - Active developers submit GitHub deployment requests separately with a project name, repository, branch, and requested hostname. Requests stay pending until an administrator assigns a hosting folder and approves them.
-- Developers can submit multiple separate database requests for any of their non-suspended projects, including one whose deployment request is still pending. Each request has its own preferred database-name suffix and admin approval. A GitHub username is optional; when supplied, the app checks that the public account exists and blocks submission if it cannot confirm it.
+- Developers can submit multiple separate database requests for any of their non-suspended projects, including one whose deployment request is still pending. Each request has its own preferred database-name suffix and admin approval.
 - Developers can verify ownership of a GitHub account through GitHub OAuth. The connection requests only the `read:user` scope, stores the stable GitHub account ID and verified username, and does not store the access token or request repository access.
 - Repository names are entered as `owner/repository` and public repositories are checked live. A private repository and a nonexistent repository are not distinguishable through the unauthenticated public check; both remain subject to admin verification.
 - Developer users land directly on GitHub deployment after sign-in. Their sidebar contains only GitHub deployment and Database; there is no separate Workspace menu item. Each module has its own request and approval path.
@@ -132,7 +60,9 @@ This is an early local prototype, not a production-ready customer portal. The us
 - The old SQLite database file was removed as requested. Do not recreate or switch back to SQLite.
 - XAMPP MySQL is now running. The fresh `elimutaifa_labs` database has been created, and Laravel migrations and seeders completed successfully against MySQL; the GitHub identity columns were added on 2026-11-23.
 - The first registered account was promoted from `developer/pending` to `admin/active` in the fresh local database on 2026-11-22.
-- The owner reports that `db.elimutaifa.co.tz` is now online. It is a possible future web entry point for database-related services, but the portal, database tools, and access controls have not been installed or configured there yet.
+- The owner reports that `db.elimutaifa.co.tz` is online and wants the portal hosted there so features can be used live. The portal has not yet been installed or configured on that domain.
+- The admin registry now has a separate `elimutaifa-labs` entry targeting `db.elimutaifa.co.tz`; its JSON is valid and its repository/branch match this repository's deployment trigger.
+- No remote deployment has been triggered yet. Before deploying, confirm the domain document root is the Laravel `public/` folder, prepare a production `.env` and MySQL database, and install Composer production dependencies. The admin upload workflow does not run `composer install`, and this repository excludes `/vendor`.
 - The owner account is already active as platform admin in the local database.
 - Separate GitHub deployment requests, multiple database requests per project, the admin database approval/rejection queue, GitHub OAuth identity verification, module sidebars, admin resource editing, and visual database table/record management are implemented. GitHub OAuth still needs app credentials and an end-to-end authorization run.
 - Deployment history integration, safe deletion/synchronization behavior, automated database provisioning, and reusable developer repository onboarding still need implementation and review.
@@ -234,4 +164,3 @@ Before finishing a development task, update this README in the same change:
 ## Current focus
 
 **Verify multiple database requests end-to-end against test databases/users assigned only to one project.** Confirm each request appears separately in the admin queue, can be approved/rejected independently, and each approved database has its own manager link. Verify table creation, structure, record insert/edit/delete, table deletion confirmation, and that another developer cannot open either database. Also verify the independent GitHub deployment flow. Treat `db.elimutaifa.co.tz` as an available hosting resource for a later step; first check its HTTPS, PHP, and hosting-folder setup before deploying anything there.
->>>>>>> 821888d (this is innovation)
