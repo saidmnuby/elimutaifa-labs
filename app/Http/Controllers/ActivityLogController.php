@@ -14,7 +14,8 @@ class ActivityLogController extends Controller
     public function index(Request $request): View
     {
         $user = $request->user();
-        $isAdmin = $user->isAdmin();
+        abort_unless($user->isAdmin(), 403);
+        $isAdmin = true;
         $filters = $request->validate([
             'date' => ['nullable', 'date_format:Y-m-d'],
             'developer_id' => ['nullable', 'integer', 'exists:users,id'],
@@ -49,7 +50,7 @@ class ActivityLogController extends Controller
             $query->where('created_at', '>=', $start)->where('created_at', '<', $end);
         }
 
-        $activities = $query->paginate(40)->withQueryString();
+        $activities = $query->paginate(20)->withQueryString();
         $labels = [
             'account.login' => 'Signed in',
             'account.logout' => 'Signed out',

@@ -65,7 +65,8 @@ Route::middleware('auth')->group(function () {
     Route::post('/account/email/verify', [EmailSecurityController::class, 'verifyEmailChange'])->middleware('throttle:email-code')->name('email.change.verify');
     Route::post('/account/email/verify/resend', [EmailSecurityController::class, 'resendEmailChangeCode'])->middleware('throttle:email-resend')->name('email.change.resend');
     Route::post('/account/email/cancel', [EmailSecurityController::class, 'cancelEmailChange'])->name('email.change.cancel');
-    Route::get('/activities', [ActivityLogController::class, 'index'])->name('activities.index');
+    Route::get('/activities', [ActivityLogController::class, 'index'])
+        ->middleware('can:manage-platform')->name('activities.index');
     Route::get('/dashboard', DashboardController::class)->name('dashboard');
     Route::get('/github/connect/project', [GitHubOAuthController::class, 'connectForProject'])
         ->middleware('can:submit-project')->name('github.oauth.project');

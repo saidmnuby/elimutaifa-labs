@@ -75,7 +75,6 @@
                     <div class="sidebar-heading">Developer services</div>
                     <a class="sidebar-link {{ request()->route('moduleKey') === 'github-deploy' ? 'active' : '' }}" href="{{ route('modules.show', 'github-deploy') }}"><span class="sidebar-icon">G</span>GitHub deployment</a>
                     <a class="sidebar-link {{ request()->route('moduleKey') === 'database' ? 'active' : '' }}" href="{{ route('modules.show', 'database') }}"><span class="sidebar-icon">D</span>Database</a>
-                    <a class="sidebar-link {{ request()->routeIs('activities.*') ? 'active' : '' }}" href="{{ route('activities.index') }}"><span class="sidebar-icon">A</span>Activity log</a>
                 @endif
                 @if (auth()->user()->email_verified_at)
                     <section class="system-settings-card" aria-label="System settings">
