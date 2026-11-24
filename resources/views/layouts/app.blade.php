@@ -17,15 +17,15 @@
     <meta property="og:title" content="@yield('og_title', trim($__env->yieldContent('title', 'TechwareTz Control Center (TCC)')))" >
     <meta property="og:description" content="@yield('meta_description', 'TechwareTz Control Center (TCC) helps developers deploy projects and manage project databases through one simple hosting workspace.')">
     <meta property="og:url" content="@yield('canonical', request()->url())">
-    <meta property="og:image" content="{{ asset('images/techwaretz-brand.png') }}">
+    <meta property="og:image" content="{{ asset('images/techwaretz-tcc-mark.png') }}">
     <meta property="og:image:type" content="image/png">
-    <meta property="og:image:width" content="1254">
-    <meta property="og:image:height" content="1254">
-    <meta property="og:image:alt" content="TechwareTz brand logo">
+    <meta property="og:image:width" content="239">
+    <meta property="og:image:height" content="229">
+    <meta property="og:image:alt" content="TechwareTz Control Center logo">
     <meta name="twitter:card" content="summary">
     <meta name="twitter:title" content="@yield('og_title', trim($__env->yieldContent('title', 'TechwareTz Control Center (TCC)')))" >
     <meta name="twitter:description" content="@yield('meta_description', 'TechwareTz Control Center (TCC) helps developers deploy projects and manage project databases through one simple hosting workspace.')">
-    <meta name="twitter:image" content="{{ asset('images/techwaretz-brand.png') }}">
+    <meta name="twitter:image" content="{{ asset('images/techwaretz-tcc-mark.png') }}">
     @stack('structured_data')
     <style>
         :root{color-scheme:light;--ink:#13233a;--muted:#607187;--line:#dbe5f0;--paper:#fff;--wash:#f2f7fc;--blue:#0868d7;--blue-dark:#0755b3;--cyan:#08a9e8;--mint:#dcfae6;--amber:#fef0c7;--red:#fee4e2}
