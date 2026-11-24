@@ -9,7 +9,7 @@
 @push('structured_data')
 <script type="application/ld+json">
 {
-  "@context": "https://schema.org",
+  "@@context": "https://schema.org",
   "@type": "Organization",
   "name": "TechwareTz Control Center (TCC)",
   "url": @json(url('/')),
@@ -19,7 +19,7 @@
 </script>
 <script type="application/ld+json">
 {
-  "@context": "https://schema.org",
+  "@@context": "https://schema.org",
   "@type": "WebSite",
   "name": "TechwareTz Control Center (TCC)",
   "url": @json(url('/')),
