@@ -161,7 +161,9 @@ class DatabaseWorkspaceController extends Controller
                 }
             } catch (\InvalidArgumentException $exception) {
                 $queryError = $exception->getMessage();
-            } catch (Throwable) {
+            } catch (Throwable $exception) {
+                report($exception);
+
                 $queryError = 'Query failed. Check its syntax and the permissions of this project database user.';
             }
         }

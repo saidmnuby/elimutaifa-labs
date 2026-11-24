@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Project;
 use App\Models\ProjectDatabase;
 use App\Models\ServiceModule;
 use App\Models\User;
@@ -99,7 +100,9 @@ class DatabaseTableController extends Controller
                     }
                 }
             });
-        } catch (Throwable) {
+        } catch (Throwable $exception) {
+            report($exception);
+
             return back()->withInput()->withErrors(['table_name' => 'Table halikuundwa. Kagua majina na ruhusa za database user.']);
         }
 
@@ -148,7 +151,9 @@ class DatabaseTableController extends Controller
 
         try {
             $connection->table($table)->insert($values);
-        } catch (Throwable) {
+        } catch (Throwable $exception) {
+            report($exception);
+
             return back()->withInput()->withErrors(['data' => 'Record haikuongezwa. Kagua thamani na required fields za table.']);
         }
 
@@ -184,7 +189,9 @@ class DatabaseTableController extends Controller
 
         try {
             $updated = $connection->table($table)->where($primaryKey, $rowKey)->update($values);
-        } catch (Throwable) {
+        } catch (Throwable $exception) {
+            report($exception);
+
             return back()->withInput()->withErrors(['data' => 'Mabadiliko hayajahifadhiwa. Kagua data na constraints za table.']);
         }
         abort_unless($connection->table($table)->where($primaryKey, $rowKey)->exists(), 404);
