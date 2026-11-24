@@ -74,7 +74,7 @@ class DatabaseWorkspaceController extends Controller
             'ip_address' => $request->ip(),
         ]);
 
-        $mailer->admins('New database request · Elimutaifa Labs', [
+        $mailer->admins('New database request · TechwareTz Control Center (TCC)', [
             'eyebrow' => 'Database request',
             'title' => 'A database needs review',
             'intro' => 'A developer requested a database for a project.',

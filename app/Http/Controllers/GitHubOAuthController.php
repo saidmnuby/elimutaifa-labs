@@ -108,7 +108,7 @@ class GitHubOAuthController extends Controller
 
         if ($claimedByAnotherUser) {
             return redirect($destination)->withErrors([
-                'github_username' => 'This GitHub account is already linked to another ElimuTaifa Labs account. Sign in to that account to use it.',
+                'github_username' => 'This GitHub account is already linked to another TechwareTz Control Center (TCC) account. Sign in to that account to use it.',
             ]);
         }
 

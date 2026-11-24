@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', 'Connect a project · Elimutaifa Labs')
+@section('title', 'Connect a project · TechwareTz Control Center (TCC)')
 
 @section('content')
 @php
@@ -117,7 +117,7 @@
                 @if ($activeStep === 1)
                     This confirms your identity. You’ll return here automatically when GitHub verification is complete.
                 @elseif ($activeStep === 2)
-                    You’ll choose which repository the read-only ElimuTaifa Labs App can access. You’ll return here after approval.
+                    You’ll choose which repository the read-only GitHub App can access. You’ll return here after approval.
                 @else
                     Your GitHub account and repository access are verified. Select the repository and add the remaining project details.
                 @endif

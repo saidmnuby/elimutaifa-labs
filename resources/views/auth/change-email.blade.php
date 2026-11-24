@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', 'Change email · Elimutaifa Labs')
+@section('title', 'Change email · TechwareTz Control Center (TCC)')
 
 @section('content')
 <section class="auth-wrap"><div class="panel auth-panel">

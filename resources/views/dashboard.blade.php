@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', 'Workspace · Elimutaifa Labs')
+@section('title', 'Workspace · TechwareTz Control Center (TCC)')
 
 @section('content')
 <div class="page-heading">

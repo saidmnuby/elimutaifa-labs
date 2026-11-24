@@ -42,14 +42,14 @@ class EmailSecurityController extends Controller
         $emailChange = $purpose === 'change_email';
         $sent = app(\App\Support\SystemMailer::class)->to(
             $email,
-            $verification ? 'Verify your email · Elimutaifa Labs' : ($emailChange ? 'Confirm your new email · Elimutaifa Labs' : 'Password reset code · Elimutaifa Labs'),
+            $verification ? 'Verify your email · TechwareTz Control Center (TCC)' : ($emailChange ? 'Confirm your new email · TechwareTz Control Center (TCC)' : 'Password reset code · TechwareTz Control Center (TCC)'),
             [
                 'eyebrow' => $verification ? 'Email verification' : ($emailChange ? 'Email change' : 'Account security'),
                 'title' => $verification ? 'Verify your email' : ($emailChange ? 'Confirm your new email' : 'Reset your password'),
                 'intro' => $verification
                     ? 'Use this code to verify your email and finish setting up your account.'
                     : ($emailChange
-                        ? 'Use this code to confirm this new email address for your Elimutaifa Labs account.'
+                        ? 'Use this code to confirm this new email address for your TechwareTz Control Center (TCC) account.'
                         : 'Use this code to confirm your email and choose a new password.'),
                 'code' => $code,
                 'note' => 'This code expires in 10 minutes. If you did not request it, you can ignore this email.',
@@ -200,7 +200,7 @@ class EmailSecurityController extends Controller
         $expiresAt = now()->addMinutes(self::CODE_MINUTES);
         Cache::store('file')->put($key, ['hash' => Hash::make($code), 'attempts' => 0, 'expires_at' => $expiresAt->timestamp], $expiresAt);
 
-        $sent = app(\App\Support\SystemMailer::class)->to($email, 'Verify your email · ElimuTaifa Labs', [
+        $sent = app(\App\Support\SystemMailer::class)->to($email, 'Verify your email · TechwareTz Control Center (TCC)', [
             'eyebrow' => 'Email verification',
             'title' => 'Verify your email',
             'intro' => 'Use this code to verify your email and continue creating your account.',
@@ -416,10 +416,10 @@ class EmailSecurityController extends Controller
         $request->user()->forceFill(['email' => $newEmail, 'email_verified_at' => now()])->save();
         $request->session()->forget('pending_email_change');
         ActivityLogger::record($request, 'account.email_changed');
-        app(\App\Support\SystemMailer::class)->to($oldEmail, 'Email address changed · Elimutaifa Labs', [
+        app(\App\Support\SystemMailer::class)->to($oldEmail, 'Email address changed · TechwareTz Control Center (TCC)', [
             'eyebrow' => 'Account security',
             'title' => 'Your account email was changed',
-            'intro' => 'The email address on your Elimutaifa Labs account has been changed.',
+            'intro' => 'The email address on your TechwareTz Control Center (TCC) account has been changed.',
             'details' => ['New email' => $newEmail],
             'note' => 'If you did not make this change, contact platform support immediately.',
         ]);

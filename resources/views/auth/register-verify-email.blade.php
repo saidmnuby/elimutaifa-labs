@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', 'Verify email · Elimutaifa Labs')
+@section('title', 'Verify email · TechwareTz Control Center (TCC)')
 
 @section('content')
 <style>

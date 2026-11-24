@@ -69,7 +69,7 @@ class AuthController extends Controller
         $githubProfile = $security->pendingGithubProfile($request);
         $githubProfile = is_array($githubProfile) ? $githubProfile : null;
         if ($githubProfile && (! isset($githubProfile['id'], $githubProfile['login']) || User::where('github_id', $githubProfile['id'])->orWhereRaw('LOWER(github_username) = ?', [mb_strtolower($githubProfile['login'])])->exists())) {
-            return redirect()->route('register.github')->withErrors(['github_username' => 'This GitHub account is already linked to an ElimuTaifa Labs account.']);
+            return redirect()->route('register.github')->withErrors(['github_username' => 'This GitHub account is already linked to a TechwareTz Control Center (TCC) account.']);
         }
 
         $user = User::create([
@@ -86,7 +86,7 @@ class AuthController extends Controller
         Auth::login($user);
         $request->session()->regenerate();
         ActivityLogger::record($request, 'account.registered');
-        $mailer->admins('New developer registration · Elimutaifa Labs', [
+        $mailer->admins('New developer registration · TechwareTz Control Center (TCC)', [
             'eyebrow' => 'New account request',
             'title' => 'A developer has registered',
             'intro' => 'A new developer account is waiting for your review.',

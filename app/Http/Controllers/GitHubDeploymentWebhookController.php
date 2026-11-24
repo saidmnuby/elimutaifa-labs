@@ -189,7 +189,7 @@ class GitHubDeploymentWebhookController extends Controller
             'Commit' => substr($deployment->commit_sha, 0, 12),
             'Result' => $success ? 'Succeeded' : ($status === 'cancelled' ? 'Cancelled' : 'Failed'),
         ];
-        $mailer->admins('Deployment '.($success ? 'succeeded' : 'failed').' · Elimutaifa Labs', [
+        $mailer->admins('Deployment '.($success ? 'succeeded' : 'failed').' · TechwareTz Control Center (TCC)', [
             'eyebrow' => 'Deployment update',
             'title' => $success ? 'Deployment completed' : 'Deployment needs attention',
             'intro' => $success
@@ -203,7 +203,7 @@ class GitHubDeploymentWebhookController extends Controller
         if ($project?->owner) {
             $mailer->to(
                 $project->owner->email,
-                'Deployment '.($success ? 'completed' : 'failed').' · Elimutaifa Labs',
+                'Deployment '.($success ? 'completed' : 'failed').' · TechwareTz Control Center (TCC)',
                 [
                     'eyebrow' => 'Deployment update',
                     'title' => $success ? 'Your deployment is live' : 'Your deployment needs attention',

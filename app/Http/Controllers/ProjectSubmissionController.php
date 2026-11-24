@@ -137,7 +137,7 @@ class ProjectSubmissionController extends Controller
             return $project;
         });
 
-        $mailer->admins('New project request · Elimutaifa Labs', [
+        $mailer->admins('New project request · TechwareTz Control Center (TCC)', [
             'eyebrow' => 'Project request',
             'title' => 'A project needs review',
             'intro' => 'A developer submitted a project for hosting approval.',

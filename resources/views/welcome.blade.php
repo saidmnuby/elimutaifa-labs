@@ -1,19 +1,19 @@
 @extends('layouts.app')
 
-@section('title', 'Developer hosting and database workspace | Elimutaifa Labs')
+@section('title', 'Developer hosting and database workspace | TechwareTz Control Center (TCC)')
 @section('meta_description', 'Deploy your GitHub projects to hosting and manage project databases from one developer workspace. Submit a project, connect its repository, and track deployment approval.')
 @section('robots', 'index, follow, max-image-preview:large')
 @section('canonical', url('/'))
-@section('og_title', 'Developer hosting and database workspace | Elimutaifa Labs')
+@section('og_title', 'Developer hosting and database workspace | TechwareTz Control Center (TCC)')
 
 @push('structured_data')
 <script type="application/ld+json">
 {
   "@context": "https://schema.org",
   "@type": "Organization",
-  "name": "Elimutaifa Labs",
+  "name": "TechwareTz Control Center (TCC)",
   "url": @json(url('/')),
-  "logo": @json(asset('images/elimutaifa-labs-mark.png')),
+  "logo": @json(asset('images/techwaretz-tcc-mark.png')),
   "description": "A developer workspace for GitHub project deployment and project database management."
 }
 </script>
@@ -21,7 +21,7 @@
 {
   "@context": "https://schema.org",
   "@type": "WebSite",
-  "name": "Elimutaifa Labs",
+  "name": "TechwareTz Control Center (TCC)",
   "url": @json(url('/')),
   "description": "Developer hosting and database workspace."
 }
@@ -56,13 +56,13 @@
                 <a class="button secondary" href="{{ route('login') }}">Sign in</a>
             </div>
         </div>
-        <div class="landing-art" aria-hidden="true"><img src="{{ asset('images/elimutaifa-labs-mark.png') }}" alt=""></div>
+        <div class="landing-art" aria-hidden="true"><img src="{{ asset('images/techwaretz-tcc-mark.png') }}" alt=""></div>
     </div>
     <div class="landing-features">
         <article class="landing-feature"><span class="icon" aria-hidden="true">GH</span><h2>GitHub deployment</h2><p>Register your repository and follow its hosting deployment request through review and activation.</p></article>
         <article class="landing-feature"><span class="icon" aria-hidden="true">DB</span><h2>Project databases</h2><p>Request a database for each project and use the workspace to manage tables and records.</p></article>
         <article class="landing-feature"><span class="icon" aria-hidden="true">✓</span><h2>One developer workspace</h2><p>Keep your approved projects and available services together in a clear account dashboard.</p></article>
     </div>
-    <div class="landing-note">Elimutaifa Labs · Project hosting and database services for developers</div>
+    <div class="landing-note">TechwareTz Control Center (TCC) · Project hosting and database services for developers</div>
 </section>
 @endsection

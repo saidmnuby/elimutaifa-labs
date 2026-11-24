@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', $module->name.' · Elimutaifa Labs')
+@section('title', $module->name.' · TechwareTz Control Center (TCC)')
 
 @section('content')
 <div class="page-heading">

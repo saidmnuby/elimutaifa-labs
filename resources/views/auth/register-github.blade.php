@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', 'Connect GitHub · Elimutaifa Labs')
+@section('title', 'Connect GitHub · TechwareTz Control Center (TCC)')
 
 @section('content')
 <style>
