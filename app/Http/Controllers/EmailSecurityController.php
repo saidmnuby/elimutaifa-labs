@@ -3,10 +3,12 @@
 namespace App\Http\Controllers;
 
 use App\Models\User;
+use App\Models\PlatformSetting;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rules\Password;
@@ -40,17 +42,18 @@ class EmailSecurityController extends Controller
 
         $verification = $purpose === 'verify_email';
         $emailChange = $purpose === 'change_email';
+        $loginVerification = $purpose === 'login_2fa';
         $sent = app(\App\Support\SystemMailer::class)->to(
             $email,
-            $verification ? 'Verify your email · TechwareTz Control Center (TCC)' : ($emailChange ? 'Confirm your new email · TechwareTz Control Center (TCC)' : 'Password reset code · TechwareTz Control Center (TCC)'),
+            $verification ? 'Verify your email · TechwareTz Control Center (TCC)' : ($emailChange ? 'Confirm your new email · TechwareTz Control Center (TCC)' : ($loginVerification ? 'Your sign-in code · TechwareTz Control Center (TCC)' : 'Password reset code · TechwareTz Control Center (TCC)')),
             [
-                'eyebrow' => $verification ? 'Email verification' : ($emailChange ? 'Email change' : 'Account security'),
-                'title' => $verification ? 'Verify your email' : ($emailChange ? 'Confirm your new email' : 'Reset your password'),
+                'eyebrow' => $verification ? 'Email verification' : ($emailChange ? 'Email change' : ($loginVerification ? 'Sign-in verification' : 'Account security')),
+                'title' => $verification ? 'Verify your email' : ($emailChange ? 'Confirm your new email' : ($loginVerification ? 'Your sign-in code' : 'Reset your password')),
                 'intro' => $verification
                     ? 'Use this code to verify your email and finish setting up your account.'
                     : ($emailChange
                         ? 'Use this code to confirm this new email address for your TechwareTz Control Center (TCC) account.'
-                        : 'Use this code to confirm your email and choose a new password.'),
+                        : ($loginVerification ? 'Use this code to finish signing in to your account.' : 'Use this code to confirm your email and choose a new password.')),
                 'code' => $code,
                 'note' => 'This code expires in 10 minutes. If you did not request it, you can ignore this email.',
             ]
@@ -65,6 +68,9 @@ class EmailSecurityController extends Controller
 
     public function verificationNotice(): View|RedirectResponse
     {
+        if (! PlatformSetting::enabled('email_verification_required', true)) {
+            return redirect()->route('dashboard');
+        }
         if (auth()->user()->email_verified_at) {
             return redirect()->route('dashboard');
         }
@@ -74,6 +80,9 @@ class EmailSecurityController extends Controller
 
     public function registrationEmailForm(Request $request): View|RedirectResponse
     {
+        if (! PlatformSetting::enabled('email_verification_required', true)) {
+            return redirect()->route('register.github');
+        }
         $draft = $this->pendingRegistration($request);
         if (! is_array($draft)) {
             return redirect()->route('register');
@@ -134,7 +143,7 @@ class EmailSecurityController extends Controller
         if (! is_array($draft)) {
             return redirect()->route('register');
         }
-        if (empty($draft['email_verified'])) {
+        if (PlatformSetting::enabled('email_verification_required', true) && empty($draft['email_verified'])) {
             return redirect()->route('register.verify-email');
         }
 
@@ -265,6 +274,79 @@ class EmailSecurityController extends Controller
         return $sent
             ? back()->with('success', 'A new verification code has been sent.')
             : back()->withErrors(['email' => 'Email delivery is not configured yet. Please contact the platform admin.']);
+    }
+
+    public function loginCodeForm(Request $request): View|RedirectResponse
+    {
+        $user = $this->pendingLoginUser($request);
+        if (! $user || ! PlatformSetting::enabled('login_email_2fa')) {
+            return redirect()->route('login');
+        }
+
+        return view('auth.login-code', ['email' => $this->maskEmail($user->email)]);
+    }
+
+    public function verifyLoginCode(Request $request): RedirectResponse
+    {
+        $request->validate(['code' => ['required', 'digits:6']]);
+        $user = $this->pendingLoginUser($request);
+        if (! $user || ! PlatformSetting::enabled('login_email_2fa')) {
+            $this->forgetPendingLogin($request);
+            return redirect()->route('login')->withErrors(['email' => 'Your sign-in session expired. Please sign in again.']);
+        }
+
+        if (! $this->consumeCode($user->email, 'login_2fa', $request->string('code')->toString())) {
+            return back()->withErrors(['code' => 'The code is invalid, expired, or has reached its attempt limit. Request a new one.']);
+        }
+
+        if (in_array($user->status, [User::STATUS_SUSPENDED, User::STATUS_REJECTED], true)) {
+            $this->forgetPendingLogin($request);
+            return redirect()->route('login')->withErrors(['email' => 'This account cannot sign in. Contact platform support.']);
+        }
+
+        $remember = $request->session()->boolean('pending_login_remember');
+        $this->forgetPendingLogin($request);
+        Auth::login($user, $remember);
+        $request->session()->regenerate();
+        ActivityLogger::record($request, 'account.login');
+
+        return redirect()->intended(route('dashboard'));
+    }
+
+    public function resendLoginCode(Request $request): RedirectResponse
+    {
+        $user = $this->pendingLoginUser($request);
+        if (! $user || ! PlatformSetting::enabled('login_email_2fa')) {
+            $this->forgetPendingLogin($request);
+            return redirect()->route('login');
+        }
+
+        return $this->sendCode($user->email, 'login_2fa')
+            ? back()->with('success', 'A new sign-in code was sent.')
+            : back()->withErrors(['code' => 'We could not send a new code. Contact the platform admin.']);
+    }
+
+    private function pendingLoginUser(Request $request): ?User
+    {
+        $expiresAt = (int) $request->session()->get('pending_login_expires_at', 0);
+        $id = $request->session()->get('pending_login_user_id');
+        if (! $id || $expiresAt <= now()->timestamp) {
+            $this->forgetPendingLogin($request);
+            return null;
+        }
+
+        return User::find($id);
+    }
+
+    private function forgetPendingLogin(Request $request): void
+    {
+        $request->session()->forget(['pending_login_user_id', 'pending_login_remember', 'pending_login_expires_at']);
+    }
+
+    private function maskEmail(string $email): string
+    {
+        [$name, $domain] = array_pad(explode('@', $email, 2), 2, '');
+        return mb_substr($name, 0, 1).str_repeat('•', max(2, mb_strlen($name) - 1)).'@'.$domain;
     }
 
     public function forgotForm(): View

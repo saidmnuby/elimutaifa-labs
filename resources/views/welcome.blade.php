@@ -13,7 +13,7 @@
   "@type": "Organization",
   "name": "TechwareTz Control Center (TCC)",
   "url": @json(url('/')),
-  "logo": @json(asset('images/techwaretz-tcc-mark.png')),
+  "logo": @json(asset('images/techwaretz-brand.png')),
   "description": "A developer workspace for GitHub project deployment and project database management."
 }
 </script>
@@ -56,7 +56,7 @@
                 <a class="button secondary" href="{{ route('login') }}">Sign in</a>
             </div>
         </div>
-        <div class="landing-art" aria-hidden="true"><img src="{{ asset('images/techwaretz-tcc-mark.png') }}" alt=""></div>
+        <div class="landing-art" aria-hidden="true"><img src="{{ asset('images/techwaretz-brand.png') }}" alt=""></div>
     </div>
     <div class="landing-features">
         <article class="landing-feature"><span class="icon" aria-hidden="true">GH</span><h2>GitHub deployment</h2><p>Register your repository and follow its hosting deployment request through review and activation.</p></article>

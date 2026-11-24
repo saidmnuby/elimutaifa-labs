@@ -13,6 +13,7 @@ use App\Http\Controllers\GitHubAppInstallationController;
 use App\Http\Controllers\GitHubDeploymentWebhookController;
 use App\Http\Controllers\PlatformAdminController;
 use App\Http\Controllers\ProjectSubmissionController;
+use App\Http\Controllers\SystemSettingsController;
 use Illuminate\Support\Facades\Route;
 
 Route::post('/github/webhook', [GitHubDeploymentWebhookController::class, 'webhook'])->name('github.webhook');
@@ -32,6 +33,9 @@ Route::get('/github/oauth/callback', [GitHubOAuthController::class, 'callback'])
 Route::middleware('guest')->group(function () {
     Route::get('/login', [AuthController::class, 'showLogin'])->name('login');
     Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:login');
+    Route::get('/login/verify', [EmailSecurityController::class, 'loginCodeForm'])->name('login.code.form');
+    Route::post('/login/verify', [EmailSecurityController::class, 'verifyLoginCode'])->middleware('throttle:email-code')->name('login.code.verify');
+    Route::post('/login/verify/resend', [EmailSecurityController::class, 'resendLoginCode'])->middleware('throttle:email-resend')->name('login.code.resend');
     Route::get('/register', [AuthController::class, 'showRegister'])->name('register');
     Route::post('/register', [AuthController::class, 'register'])->middleware('throttle:register');
     Route::get('/register/verify-email', [EmailSecurityController::class, 'registrationEmailForm'])->name('register.verify-email');
@@ -107,6 +111,8 @@ Route::middleware('auth')->group(function () {
         Route::get('/projects', [PlatformAdminController::class, 'projects'])->name('projects');
         Route::patch('/projects/{project}/reject', [PlatformAdminController::class, 'rejectProject'])->name('projects.reject');
         Route::get('/database-requests', [PlatformAdminController::class, 'databaseRequests'])->name('database-requests');
+        Route::get('/system-settings', [SystemSettingsController::class, 'edit'])->name('system-settings');
+        Route::put('/system-settings', [SystemSettingsController::class, 'update'])->name('system-settings.update');
         Route::post('/database-requests/{databaseRequest}/approve', [PlatformAdminController::class, 'approveDatabaseRequest'])->name('database-requests.approve');
         Route::patch('/database-requests/{databaseRequest}/reject', [PlatformAdminController::class, 'rejectDatabaseRequest'])->name('database-requests.reject');
         Route::get('/projects/{project}/edit', [PlatformAdminController::class, 'editProject'])->name('projects.edit');

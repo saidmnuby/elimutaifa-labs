@@ -198,7 +198,7 @@ class GitHubDeploymentWebhookController extends Controller
             'details' => $details,
             'button_label' => 'Open projects',
             'button_url' => route('admin.projects'),
-        ]);
+        ], $success ? 'notify_deployment_succeeded' : 'notify_deployment_failed');
 
         if ($project?->owner) {
             $mailer->to(

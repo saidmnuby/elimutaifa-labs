@@ -12,15 +12,20 @@
     <link rel="icon" type="image/png" href="{{ asset('images/techwaretz-tcc-mark.png') }}">
     <link rel="apple-touch-icon" href="{{ asset('images/techwaretz-tcc-mark.png') }}">
     <meta property="og:site_name" content="TechwareTz Control Center (TCC)">
+    <meta property="og:locale" content="en_TZ">
     <meta property="og:type" content="@yield('og_type', 'website')">
     <meta property="og:title" content="@yield('og_title', trim($__env->yieldContent('title', 'TechwareTz Control Center (TCC)')))" >
     <meta property="og:description" content="@yield('meta_description', 'TechwareTz Control Center (TCC) helps developers deploy projects and manage project databases through one simple hosting workspace.')">
     <meta property="og:url" content="@yield('canonical', request()->url())">
-    <meta property="og:image" content="{{ asset('images/techwaretz-tcc-mark.png') }}">
+    <meta property="og:image" content="{{ asset('images/techwaretz-brand.png') }}">
+    <meta property="og:image:type" content="image/png">
+    <meta property="og:image:width" content="1254">
+    <meta property="og:image:height" content="1254">
+    <meta property="og:image:alt" content="TechwareTz brand logo">
     <meta name="twitter:card" content="summary">
     <meta name="twitter:title" content="@yield('og_title', trim($__env->yieldContent('title', 'TechwareTz Control Center (TCC)')))" >
     <meta name="twitter:description" content="@yield('meta_description', 'TechwareTz Control Center (TCC) helps developers deploy projects and manage project databases through one simple hosting workspace.')">
-    <meta name="twitter:image" content="{{ asset('images/techwaretz-tcc-mark.png') }}">
+    <meta name="twitter:image" content="{{ asset('images/techwaretz-brand.png') }}">
     @stack('structured_data')
     <style>
         :root{color-scheme:light;--ink:#13233a;--muted:#607187;--line:#dbe5f0;--paper:#fff;--wash:#f2f7fc;--blue:#0868d7;--blue-dark:#0755b3;--cyan:#08a9e8;--mint:#dcfae6;--amber:#fef0c7;--red:#fee4e2}
@@ -71,6 +76,7 @@
                     <a class="sidebar-link {{ request()->routeIs('admin.projects*') ? 'active' : '' }}" href="{{ route('admin.projects') }}"><span class="sidebar-icon">P</span>Projects</a>
                     <a class="sidebar-link {{ request()->routeIs('admin.database-requests*') ? 'active' : '' }}" href="{{ route('admin.database-requests') }}"><span class="sidebar-icon">DB</span>Database requests</a>
                     <a class="sidebar-link {{ request()->routeIs('activities.*') ? 'active' : '' }}" href="{{ route('activities.index') }}"><span class="sidebar-icon">A</span>Activity log</a>
+                    <a class="sidebar-link {{ request()->routeIs('admin.system-settings*') ? 'active' : '' }}" href="{{ route('admin.system-settings') }}"><span class="sidebar-icon">S</span>System settings</a>
                 @else
                     <div class="sidebar-heading">Developer services</div>
                     <a class="sidebar-link {{ request()->route('moduleKey') === 'github-deploy' ? 'active' : '' }}" href="{{ route('modules.show', 'github-deploy') }}"><span class="sidebar-icon">G</span>GitHub deployment</a>

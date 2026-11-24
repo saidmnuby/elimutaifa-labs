@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\User;
+use App\Models\PlatformSetting;
 use App\Support\ActivityLogger;
 use App\Support\SystemMailer;
 use Illuminate\Http\RedirectResponse;
@@ -23,7 +24,7 @@ class AuthController extends Controller
     {
         $draft = app(EmailSecurityController::class)->pendingRegistration($request);
         if ($draft) {
-            return redirect()->route(! empty($draft['email_verified']) ? 'register.github' : 'register.verify-email');
+            return redirect()->route(! PlatformSetting::enabled('email_verification_required', true) || ! empty($draft['email_verified']) ? 'register.github' : 'register.verify-email');
         }
 
         return view('auth.register');
@@ -38,6 +39,7 @@ class AuthController extends Controller
             'password' => ['required', 'confirmed', Password::min(12)->letters()->numbers()],
         ]);
 
+        $verificationRequired = PlatformSetting::enabled('email_verification_required', true);
         app(EmailSecurityController::class)->storePendingRegistration($request, [
             'name' => $validated['name'],
             'email' => mb_strtolower($validated['email']),
@@ -45,6 +47,10 @@ class AuthController extends Controller
             'email_verified' => false,
             'expires_at' => now()->addMinutes(30)->timestamp,
         ]);
+
+        if (! $verificationRequired) {
+            return redirect()->route('register.github')->with('success', 'Email verification is currently disabled by the platform admin.');
+        }
 
         $sent = app(EmailSecurityController::class)->sendRegistrationCode(mb_strtolower($validated['email']));
 
@@ -57,7 +63,8 @@ class AuthController extends Controller
     {
         $security = app(EmailSecurityController::class);
         $draft = $security->pendingRegistration($request);
-        if (! is_array($draft) || empty($draft['email_verified']) || empty($draft['expires_at']) || $draft['expires_at'] <= now()->timestamp) {
+        $verificationRequired = PlatformSetting::enabled('email_verification_required', true);
+        if (! is_array($draft) || ($verificationRequired && empty($draft['email_verified'])) || empty($draft['expires_at']) || $draft['expires_at'] <= now()->timestamp) {
             $security->forgetPendingRegistration($request);
             return redirect()->route('register')->withErrors(['email' => 'Please complete email verification first.']);
         }
@@ -75,7 +82,7 @@ class AuthController extends Controller
         $user = User::create([
             'name' => $draft['name'],
             'email' => $draft['email'],
-            'email_verified_at' => now(),
+            'email_verified_at' => ! empty($draft['email_verified']) ? now() : null,
             'github_username' => $githubProfile['login'] ?? null,
             'github_id' => $githubProfile['id'] ?? null,
             'github_verified_at' => $githubProfile ? now() : null,
@@ -124,10 +131,30 @@ class AuthController extends Controller
             return back()->withErrors(['email' => $message]);
         }
 
+        if (PlatformSetting::enabled('login_email_2fa')) {
+            $user = auth()->user();
+            $sent = app(EmailSecurityController::class)->sendCode($user->email, 'login_2fa');
+            if (! $sent) {
+                Auth::logout();
+                $request->session()->invalidate();
+                $request->session()->regenerateToken();
+
+                return redirect()->route('login')->withErrors(['email' => 'We could not send the sign-in code. Please contact the platform admin.']);
+            }
+
+            $request->session()->put('pending_login_user_id', $user->id);
+            $request->session()->put('pending_login_remember', $request->boolean('remember'));
+            $request->session()->put('pending_login_expires_at', now()->addMinutes(10)->timestamp);
+            Auth::logout();
+            $request->session()->regenerate();
+
+            return redirect()->route('login.code.form');
+        }
+
         $request->session()->regenerate();
         ActivityLogger::record($request, 'account.login');
 
-        if (! auth()->user()->email_verified_at) {
+        if (PlatformSetting::enabled('email_verification_required', true) && ! auth()->user()->email_verified_at) {
             $sent = app(EmailSecurityController::class)->sendCode(auth()->user()->email, 'verify_email');
             return redirect()->route('email.verify.notice')->with($sent ? 'success' : 'mail_error', $sent
                 ? 'We sent a verification code to your email address.'
