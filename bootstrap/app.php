@@ -11,6 +11,7 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware) {
+        $middleware->alias(['email.verified' => \App\Http\Middleware\RequireVerifiedEmail::class]);
         $middleware->validateCsrfTokens(except: [
             'github/webhook',
             'github/deployment-callback',

@@ -40,8 +40,24 @@ class AppServiceProvider extends ServiceProvider
             Limit::perHour(3)->by($request->ip())
         );
 
+        RateLimiter::for('email-code', fn (Request $request) =>
+            Limit::perMinute(6)->by(Str::lower((string) ($request->user()?->email ?? $request->input('email', 'guest'))).'|'.$request->ip())
+        );
+
+        RateLimiter::for('email-resend', fn (Request $request) =>
+            Limit::perMinute(1)->by(Str::lower((string) ($request->user()?->email ?? $request->session()->get('password_reset_email', 'guest'))).'|'.$request->ip())
+        );
+
+        RateLimiter::for('password-change', fn (Request $request) =>
+            Limit::perMinute(5)->by($request->user()->id.'|'.$request->ip())
+        );
+
         RateLimiter::for('github-verify', fn (Request $request) =>
             Limit::perMinute(30)->by($request->ip())
+        );
+
+        RateLimiter::for('database-credentials', fn (Request $request) =>
+            Limit::perMinute(10)->by($request->user()->id.'|'.$request->ip())
         );
     }
 }

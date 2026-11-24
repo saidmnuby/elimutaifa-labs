@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\EmailSecurityController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DeveloperModuleController;
 use App\Http\Controllers\DatabaseWorkspaceController;
@@ -28,13 +29,32 @@ Route::middleware('guest')->group(function () {
     Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:login');
     Route::get('/register', [AuthController::class, 'showRegister'])->name('register');
     Route::post('/register', [AuthController::class, 'register'])->middleware('throttle:register');
+    Route::get('/register/verify-email', [EmailSecurityController::class, 'registrationEmailForm'])->name('register.verify-email');
+    Route::post('/register/verify-email', [EmailSecurityController::class, 'verifyRegistrationEmail'])->middleware('throttle:email-code')->name('register.verify-email.submit');
+    Route::post('/register/verify-email/resend', [EmailSecurityController::class, 'resendRegistrationEmail'])->middleware('throttle:email-resend')->name('register.verify-email.resend');
+    Route::post('/register/restart', [EmailSecurityController::class, 'restartRegistration'])->name('register.restart');
+    Route::get('/register/github', [EmailSecurityController::class, 'registrationGithubForm'])->name('register.github');
+    Route::post('/register/complete', [AuthController::class, 'completeRegistration'])->middleware('throttle:register')->name('register.complete');
+    Route::get('/forgot-password', [EmailSecurityController::class, 'forgotForm'])->name('password.request');
+    Route::post('/forgot-password', [EmailSecurityController::class, 'requestResetCode'])->middleware('throttle:email-code')->name('password.email');
+    Route::get('/forgot-password/code', [EmailSecurityController::class, 'codeForm'])->name('password.code');
+    Route::post('/forgot-password/code', [EmailSecurityController::class, 'verifyResetCode'])->middleware('throttle:email-code')->name('password.code.verify');
+    Route::post('/forgot-password/resend', [EmailSecurityController::class, 'resendResetCode'])->middleware('throttle:email-resend')->name('password.code.resend');
+    Route::get('/reset-password', [EmailSecurityController::class, 'resetForm'])->name('password.reset.form');
+    Route::post('/reset-password', [EmailSecurityController::class, 'resetPassword'])->middleware('throttle:email-code')->name('password.reset');
     Route::get('/github/connect/register', [GitHubOAuthController::class, 'connectForRegistration'])
         ->name('github.oauth.register');
 });
 
 Route::middleware('auth')->group(function () {
-    Route::get('/dashboard', DashboardController::class)->name('dashboard');
     Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
+    Route::get('/email/verify', [EmailSecurityController::class, 'verificationNotice'])->name('email.verify.notice');
+    Route::post('/email/verify', [EmailSecurityController::class, 'verifyEmail'])->middleware('throttle:email-code')->name('email.verify');
+    Route::post('/email/verify/resend', [EmailSecurityController::class, 'resendVerification'])->middleware('throttle:email-resend')->name('email.verify.resend');
+    Route::middleware('email.verified')->group(function () {
+    Route::get('/account/password', [EmailSecurityController::class, 'changePasswordForm'])->name('password.change.form');
+    Route::put('/account/password', [EmailSecurityController::class, 'changePassword'])->middleware('throttle:password-change')->name('password.change');
+    Route::get('/dashboard', DashboardController::class)->name('dashboard');
     Route::get('/github/connect/project', [GitHubOAuthController::class, 'connectForProject'])
         ->middleware('can:submit-project')->name('github.oauth.project');
     Route::get('/github/app/install', [GitHubAppInstallationController::class, 'start'])
@@ -46,6 +66,8 @@ Route::middleware('auth')->group(function () {
     Route::get('/modules/database/request', [DatabaseWorkspaceController::class, 'requestForm'])->name('database.request.create');
     Route::post('/modules/database/request', [DatabaseWorkspaceController::class, 'storeRequest'])->name('database.request.store');
     Route::get('/database-accounts/{database}', [DatabaseWorkspaceController::class, 'show'])->name('database.show');
+    Route::post('/database-accounts/{database}/credentials', [DatabaseWorkspaceController::class, 'credentials'])
+        ->middleware('throttle:database-credentials')->name('database.credentials');
     Route::get('/database-accounts/{database}/export', [DatabaseWorkspaceController::class, 'export'])->name('database.export');
     Route::get('/database-accounts/{database}/tables/create', [DatabaseTableController::class, 'createTable'])->name('database.tables.create');
     Route::post('/database-accounts/{database}/tables', [DatabaseTableController::class, 'storeTable'])->name('database.tables.store');
@@ -77,5 +99,6 @@ Route::middleware('auth')->group(function () {
         Route::get('/projects/{project}/edit', [PlatformAdminController::class, 'editProject'])->name('projects.edit');
         Route::patch('/projects/{project}', [PlatformAdminController::class, 'updateProject'])->name('projects.update');
         Route::patch('/projects/{project}/approve', [PlatformAdminController::class, 'approveProject'])->name('projects.approve');
+    });
     });
 });

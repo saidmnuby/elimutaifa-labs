@@ -35,6 +35,9 @@
         <div class="top-actions">
             @auth
                 <span>{{ auth()->user()->name }}</span>
+                @if (auth()->user()->email_verified_at)
+                    <a href="{{ route('password.change.form') }}">Change password</a>
+                @endif
                 <form method="post" action="{{ route('logout') }}">@csrf<button class="link-button" type="submit">Sign out</button></form>
             @else
                 <a href="{{ route('login') }}">Sign in</a>

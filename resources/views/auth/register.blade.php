@@ -3,46 +3,22 @@
 @section('title', 'Create account · Elimutaifa Labs')
 
 @section('content')
-<section class="auth-wrap">
+<style>
+    .signup-card{width:min(500px,100%);margin:20px auto}.signup-steps{display:flex;gap:8px;margin:22px 0 26px}.signup-step{flex:1;border-top:3px solid #e4e7ec;padding-top:8px;color:#667085;font-size:11px;font-weight:650}.signup-step.active{border-color:#175cd3;color:#175cd3}.signup-card h1{font-size:25px}.signup-card .auth-intro{margin:7px 0 22px}
+</style>
+<section class="auth-wrap signup-card">
     <div class="panel auth-panel">
-        <p class="eyebrow">Join the platform</p>
-        <h1>Create a developer account</h1>
-        <p class="auth-intro">Your account is reviewed before hosting projects are activated.</p>
-        <form method="post" action="{{ url('/register') }}">
+        <p class="eyebrow">Create your account · Step 1 of 3</p>
+        <h1>Your details</h1>
+        <div class="signup-steps"><div class="signup-step active">1 · Account</div><div class="signup-step">2 · Email</div><div class="signup-step">3 · GitHub (optional)</div></div>
+        <p class="auth-intro">Start with your name, email, and password.</p>
+        <form method="post" action="{{ route('register') }}">
             @csrf
-            <div class="field">
-                <label for="name">Full name</label>
-                <input id="name" name="name" value="{{ old('name') }}" autocomplete="name" maxlength="120" required>
-                @error('name')<div class="form-error">{{ $message }}</div>@enderror
-            </div>
-            <div class="field">
-                <label for="email">Email address</label>
-                <input id="email" name="email" type="email" value="{{ old('email') }}" autocomplete="email" required>
-                @error('email')<div class="form-error">{{ $message }}</div>@enderror
-            </div>
-            <div class="field">
-                <label for="github_username">GitHub account <span class="muted">(optional)</span></label>
-                <input id="github_username" name="github_username" value="{{ session('github_verified_profile.login', old('github_username')) }}" autocomplete="username" maxlength="39" placeholder="Connect your GitHub account" @if (session('github_verified_profile')) readonly @endif>
-                @if (session('github_verified_profile'))
-                    <small class="badge active" style="margin-top:7px">Ownership verified with GitHub</small>
-                    <a class="button secondary small" style="margin-top:8px" href="{{ route('github.oauth.register') }}">Use a different GitHub account</a>
-                @else
-                    <small class="muted">Optional. Connect GitHub first if you want to add a username. This confirms account ownership and does not grant repository access.</small>
-                    <a class="button secondary small" style="margin-top:8px" href="{{ route('github.oauth.register') }}">Verify ownership with GitHub</a>
-                @endif
-                @error('github_username')<div class="form-error">{{ $message }}</div>@enderror
-            </div>
-            <div class="field">
-                <label for="password">Password</label>
-                <input id="password" name="password" type="password" autocomplete="new-password" required>
-                <div class="muted" style="font-size:12px;margin-top:5px">Use at least 12 characters, including letters and numbers.</div>
-                @error('password')<div class="form-error">{{ $message }}</div>@enderror
-            </div>
-            <div class="field">
-                <label for="password_confirmation">Confirm password</label>
-                <input id="password_confirmation" name="password_confirmation" type="password" autocomplete="new-password" required>
-            </div>
-            <button class="button full" type="submit">Create account</button>
+            <div class="field"><label for="name">Full name</label><input id="name" name="name" value="{{ old('name') }}" autocomplete="name" maxlength="120" required autofocus></div>
+            <div class="field"><label for="email">Email address</label><input id="email" name="email" type="email" value="{{ old('email') }}" autocomplete="email" required></div>
+            <div class="field"><label for="password">Password</label><input id="password" name="password" type="password" autocomplete="new-password" required><small class="muted">12+ characters, with letters and numbers.</small></div>
+            <div class="field"><label for="password_confirmation">Confirm password</label><input id="password_confirmation" name="password_confirmation" type="password" autocomplete="new-password" required></div>
+            <button class="button full" type="submit">Continue</button>
         </form>
         <div class="auth-footer">Already registered? <a href="{{ route('login') }}">Sign in</a></div>
     </div>

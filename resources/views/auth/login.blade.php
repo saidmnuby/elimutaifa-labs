@@ -20,6 +20,7 @@
                 <input id="password" name="password" type="password" autocomplete="current-password" required>
                 @error('password')<div class="form-error">{{ $message }}</div>@enderror
             </div>
+            <div style="text-align:right;margin:-8px 0 16px;font-size:13px"><a href="{{ route('password.request') }}">Forgot password?</a></div>
             <label class="muted" style="display:flex;align-items:center;gap:8px;margin:0 0 18px;font-size:13px"><input type="checkbox" name="remember" value="1"> Keep me signed in</label>
             <button class="button full" type="submit">Sign in</button>
         </form>

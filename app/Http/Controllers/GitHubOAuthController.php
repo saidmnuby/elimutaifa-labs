@@ -122,12 +122,17 @@ class GitHubOAuthController extends Controller
             return redirect($destination)->with('success', 'GitHub account ownership verified: @'.$githubUsername.'.');
         }
 
-        $request->session()->put('github_verified_profile', [
+        $githubProfile = [
             'id' => $githubId,
             'login' => $githubUsername,
-        ]);
+        ];
+        if (! app(EmailSecurityController::class)->setPendingGithubProfile($request, $githubProfile)) {
+            return redirect()->route('register')->withErrors([
+                'email' => 'Your registration session expired. Please start again.',
+            ]);
+        }
 
-        return redirect($destination)->with('success', 'GitHub account ownership verified: @'.$githubUsername.'. Complete your registration below.');
+        return redirect($destination)->with('success', 'GitHub username verified.');
     }
 
     private function start(Request $request, string $intent): RedirectResponse
@@ -168,6 +173,6 @@ class GitHubOAuthController extends Controller
 
     private function destination(string $intent): string
     {
-        return $intent === 'project' ? route('projects.create') : route('register');
+        return $intent === 'project' ? route('projects.create') : route('register.github');
     }
 }
