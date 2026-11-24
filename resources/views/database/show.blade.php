@@ -12,6 +12,22 @@
     <a href="{{ route('modules.show', 'database') }}">Back to Database</a>
 </div>
 
+<section class="panel" style="margin-bottom:20px">
+    <div class="section-head"><div><h2>Application connection details</h2><span class="muted">For this database only</span></div></div>
+    <p class="muted" style="margin-bottom:14px">Use these values in your application’s private <code>.env</code> file. Keep that file out of GitHub.</p>
+    <button class="button secondary" id="reveal-database-credentials" type="button"
+        data-url="{{ route('database.credentials', $databaseRecord) }}">Show credentials</button>
+    <div id="database-credentials-panel" hidden style="margin-top:16px">
+        <label for="database-environment-example" style="display:block;font-weight:650;margin-bottom:6px">.env settings</label>
+        <textarea id="database-environment-example" readonly rows="6" spellcheck="false" style="width:100%;font:13px/1.5 ui-monospace,SFMono-Regular,Consolas,monospace"></textarea>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px">
+            <button class="button small" id="copy-database-credentials" type="button">Copy settings</button>
+            <button class="button small secondary" id="hide-database-credentials" type="button">Hide credentials</button>
+        </div>
+        <p id="database-credentials-message" class="muted" role="status" aria-live="polite" style="margin-top:8px">Credentials will be hidden automatically after one minute.</p>
+    </div>
+</section>
+
 @if ($connectionError)
     <div class="notice warning">{{ $connectionError }}</div>
 @else
@@ -63,4 +79,71 @@
         @endif
     </section>
 @endif
+
+<script>
+(() => {
+    const revealButton = document.getElementById('reveal-database-credentials');
+    const panel = document.getElementById('database-credentials-panel');
+    const output = document.getElementById('database-environment-example');
+    const message = document.getElementById('database-credentials-message');
+    const copyButton = document.getElementById('copy-database-credentials');
+    const hideButton = document.getElementById('hide-database-credentials');
+    let hideTimer;
+
+    const hideCredentials = () => {
+        window.clearTimeout(hideTimer);
+        output.value = '';
+        panel.hidden = true;
+        revealButton.hidden = false;
+        revealButton.disabled = false;
+        message.textContent = 'Credentials will be hidden automatically after one minute.';
+    };
+
+    revealButton.addEventListener('click', async () => {
+        revealButton.disabled = true;
+        revealButton.textContent = 'Loading…';
+        message.textContent = '';
+
+        try {
+            const response = await fetch(revealButton.dataset.url, {
+                method: 'POST',
+                credentials: 'same-origin',
+                headers: {
+                    'Accept': 'application/json',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                },
+            });
+            const result = await response.json();
+            if (!response.ok) {
+                throw new Error(result.message || 'Credentials could not be loaded.');
+            }
+
+            output.value = result.environment;
+            panel.hidden = false;
+            revealButton.hidden = true;
+            hideTimer = window.setTimeout(hideCredentials, 60000);
+        } catch (error) {
+            message.textContent = error.message;
+            revealButton.disabled = false;
+        } finally {
+            revealButton.textContent = 'Show credentials';
+        }
+    });
+
+    copyButton.addEventListener('click', async () => {
+        try {
+            await navigator.clipboard.writeText(output.value);
+            message.textContent = 'Settings copied. Keep them private.';
+        } catch (error) {
+            output.focus();
+            output.select();
+            message.textContent = document.execCommand('copy')
+                ? 'Settings copied. Keep them private.'
+                : 'Select and copy the settings manually.';
+        }
+    });
+
+    hideButton.addEventListener('click', hideCredentials);
+})();
+</script>
 @endsection

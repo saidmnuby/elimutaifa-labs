@@ -8,6 +8,7 @@ use App\Models\ProjectDatabase;
 use App\Models\ProjectDatabaseRequest;
 use App\Models\ServiceModule;
 use App\Models\User;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -99,6 +100,42 @@ class DatabaseWorkspaceController extends Controller
             'queryMessage' => null,
             'queryError' => null,
         ]);
+    }
+
+    public function credentials(Request $request, ProjectDatabase $database): JsonResponse
+    {
+        $this->authorizeDatabase($database);
+
+        if (blank($database->encrypted_password)) {
+            return response()->json([
+                'message' => 'Admin bado hajaweka password ya database kwenye portal.',
+            ], 409)->header('Cache-Control', 'private, no-store, no-cache, max-age=0');
+        }
+
+        AuditEvent::create([
+            'actor_id' => $request->user()->id,
+            'project_id' => $database->project_id,
+            'action' => 'database.credentials.viewed',
+            'subject_type' => ProjectDatabase::class,
+            'subject_id' => (string) $database->id,
+            'details' => ['database_id' => $database->id],
+            'ip_address' => $request->ip(),
+        ]);
+
+        $environment = implode("\n", [
+            'DB_CONNECTION=mysql',
+            'DB_HOST='.$this->dotenvValue($database->host),
+            'DB_PORT=3306',
+            'DB_DATABASE='.$this->dotenvValue($database->database_name),
+            'DB_USERNAME='.$this->dotenvValue($database->database_user),
+            'DB_PASSWORD='.$this->dotenvValue($database->encrypted_password),
+        ]);
+
+        return response()->json([
+            'environment' => $environment,
+        ])->header('Cache-Control', 'private, no-store, no-cache, max-age=0')
+            ->header('Pragma', 'no-cache')
+            ->header('Expires', '0');
     }
 
     public function export(ProjectDatabase $database)
@@ -276,6 +313,17 @@ class DatabaseWorkspaceController extends Controller
     private function connectionName(ProjectDatabase $database): string
     {
         return 'developer_project_database_'.$database->id;
+    }
+
+    private function dotenvValue(string $value): string
+    {
+        $escaped = str_replace(
+            ['\\', '"', '$', "\r", "\n"],
+            ['\\\\', '\\"', '\\$', '\\r', '\\n'],
+            $value,
+        );
+
+        return '"'.$escaped.'"';
     }
 
     private function connection(ProjectDatabase $database)
