@@ -11,6 +11,7 @@ use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Response;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\View\View;
 use Throwable;
@@ -98,6 +99,70 @@ class DatabaseWorkspaceController extends Controller
             'queryMessage' => null,
             'queryError' => null,
         ]);
+    }
+
+    public function export(ProjectDatabase $database)
+    {
+        $this->authorizeDatabase($database);
+        $connection = $this->connection($database);
+        $pdo = $connection->getPdo();
+        $tableNames = $this->listTables($connection);
+        $filename = preg_replace('/[^A-Za-z0-9_-]/', '_', $database->database_name).'-backup-'.now()->format('Y-m-d-His').'.sql';
+
+        return Response::streamDownload(function () use ($pdo, $tableNames, $database) {
+            echo "-- SQL backup for {$database->database_name}\n";
+            echo '-- Exported at '.now()->toIso8601String()."\n\n";
+            echo "SET FOREIGN_KEY_CHECKS=0;\n\n";
+
+            foreach ($tableNames as $table) {
+                $identifier = '`'.str_replace('`', '``', $table).'`';
+                $create = $pdo->query("SHOW CREATE TABLE {$identifier}")->fetch(\PDO::FETCH_ASSOC);
+                $createSql = $create['Create Table'] ?? null;
+                if (! is_string($createSql)) {
+                    continue;
+                }
+
+                echo "DROP TABLE IF EXISTS {$identifier};\n".$createSql.";\n\n";
+                $statement = $pdo->query("SELECT * FROM {$identifier}");
+                $columns = [];
+                for ($index = 0; $index < $statement->columnCount(); $index++) {
+                    $meta = $statement->getColumnMeta($index);
+                    $columns[] = '`'.str_replace('`', '``', $meta['name']).'`';
+                }
+                if ($columns === []) {
+                    continue;
+                }
+
+                $columnList = implode(', ', $columns);
+                $batch = [];
+                while ($row = $statement->fetch(\PDO::FETCH_NUM)) {
+                    $values = array_map(static function ($value) use ($pdo): string {
+                        if ($value === null) {
+                            return 'NULL';
+                        }
+                        $quoted = $pdo->quote((string) $value, \PDO::PARAM_STR);
+                        if ($quoted === false) {
+                            throw new \RuntimeException('Could not quote a database value for export.');
+                        }
+
+                        return $quoted;
+                    }, $row);
+                    $batch[] = '('.implode(', ', $values).')';
+
+                    if (count($batch) === 100) {
+                        echo 'INSERT INTO '.$identifier.' ('.$columnList.") VALUES\n".implode(",\n", $batch).";\n";
+                        $batch = [];
+                    }
+                }
+
+                if ($batch !== []) {
+                    echo 'INSERT INTO '.$identifier.' ('.$columnList.") VALUES\n".implode(",\n", $batch).";\n";
+                }
+                echo "\n";
+            }
+
+            echo "SET FOREIGN_KEY_CHECKS=1;\n";
+        }, $filename, ['Content-Type' => 'application/sql; charset=UTF-8']);
     }
 
     public function browseTable(ProjectDatabase $database, string $table): View

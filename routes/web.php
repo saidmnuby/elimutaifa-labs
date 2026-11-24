@@ -42,6 +42,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/modules/database/request', [DatabaseWorkspaceController::class, 'requestForm'])->name('database.request.create');
     Route::post('/modules/database/request', [DatabaseWorkspaceController::class, 'storeRequest'])->name('database.request.store');
     Route::get('/database-accounts/{database}', [DatabaseWorkspaceController::class, 'show'])->name('database.show');
+    Route::get('/database-accounts/{database}/export', [DatabaseWorkspaceController::class, 'export'])->name('database.export');
     Route::get('/database-accounts/{database}/tables/create', [DatabaseTableController::class, 'createTable'])->name('database.tables.create');
     Route::post('/database-accounts/{database}/tables', [DatabaseTableController::class, 'storeTable'])->name('database.tables.store');
     Route::get('/database-accounts/{database}/tables/{table}', [DatabaseTableController::class, 'show'])->name('database.tables.show');

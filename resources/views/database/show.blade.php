@@ -16,7 +16,7 @@
     <div class="notice warning">{{ $connectionError }}</div>
 @else
     <section class="panel" style="margin-bottom:20px">
-        <div class="section-head"><div><h2>Database tables</h2><span class="muted">{{ count($tables) }} tables</span></div><a class="button" href="{{ route('database.tables.create', $databaseRecord) }}">Create table</a></div>
+        <div class="section-head"><div><h2>Database tables</h2><span class="muted">{{ count($tables) }} tables</span></div><div style="display:flex;gap:8px;flex-wrap:wrap"><a class="button secondary" href="{{ route('database.export', $databaseRecord) }}">Download SQL backup</a><a class="button" href="{{ route('database.tables.create', $databaseRecord) }}">Create table</a></div></div>
         @if (empty($tables))
             <div class="empty-state"><strong>No tables yet</strong>Use the SQL workspace below to create the first table.</div>
         @else
