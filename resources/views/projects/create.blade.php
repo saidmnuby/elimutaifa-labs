@@ -28,7 +28,15 @@
         <div class="field">
             <label for="repository">GitHub repository</label>
             <input id="repository" name="repository" value="{{ old('repository') }}" placeholder="your-account/project-repo" maxlength="190" required data-github-live-check="repository" data-github-check-url="{{ route('github.verify.repository') }}" data-status-target="github-repository-live-status">
-            <small class="muted">Enter <code>owner/repository</code>. Public repos are checked live. A private repo or a typo may look the same here, so admin will review access. Repos owned by an organization are allowed.</small>
+            @if (session('github_app_installation_id'))
+                <small class="badge active" style="margin-top:7px">GitHub App connected to {{ '@'.session('github_app_account_login') }}</small>
+                <a class="button secondary small" style="margin-top:8px" href="{{ route('github.app.install') }}">Change selected GitHub repositories</a>
+            @elseif (auth()->user()->github_verified_at)
+                <small class="muted">Enter <code>owner/repository</code>. Connect the GitHub App and select the repository to verify access, including private repositories.</small>
+                <a class="button secondary small" style="margin-top:8px" href="{{ route('github.app.install') }}">Connect GitHub App and select repository</a>
+            @else
+                <small class="muted">First verify your GitHub account below. Then connect the GitHub App and select the repository.</small>
+            @endif
             <small id="github-repository-live-status" class="live-check" role="status" aria-live="polite" hidden></small>
             @error('repository')<small class="error">{{ $message }}</small>@enderror
         </div>
@@ -38,7 +46,7 @@
             @if (auth()->user()->github_verified_at)
                 <small class="badge active" style="margin-top:7px">Ownership verified with GitHub</small>
             @else
-                <small class="muted">Optional. If you enter a username, verify that you own it with GitHub. This does not grant repository access.</small>
+                <small class="muted">Connect your GitHub account to confirm your identity. Repository access is checked separately using the GitHub App.</small>
                 <a class="button secondary small" style="margin-top:8px" href="{{ route('github.oauth.project') }}">Verify ownership with GitHub</a>
             @endif
             @error('github_username')<small class="error">{{ $message }}</small>@enderror

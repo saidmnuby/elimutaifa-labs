@@ -302,6 +302,9 @@ class PlatformAdminController extends Controller
             if ($repository) {
                 $repository->forceFill([
                     'full_name' => $validated['repository'],
+                    'github_installation_id' => strcasecmp($repository->full_name, $validated['repository']) === 0
+                        ? $repository->github_installation_id
+                        : null,
                     'branch' => $validated['branch'],
                 ])->save();
             }

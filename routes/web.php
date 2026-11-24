@@ -7,6 +7,7 @@ use App\Http\Controllers\DatabaseWorkspaceController;
 use App\Http\Controllers\DatabaseTableController;
 use App\Http\Controllers\GitHubVerificationController;
 use App\Http\Controllers\GitHubOAuthController;
+use App\Http\Controllers\GitHubAppInstallationController;
 use App\Http\Controllers\PlatformAdminController;
 use App\Http\Controllers\ProjectSubmissionController;
 use Illuminate\Support\Facades\Route;
@@ -15,8 +16,6 @@ Route::get('/', fn () => auth()->check()
     ? redirect()->route('dashboard')
     : redirect()->route('login'));
 
-Route::get('/github/verify/repository', [GitHubVerificationController::class, 'repository'])
-    ->middleware('throttle:github-verify')->name('github.verify.repository');
 Route::get('/github/oauth/callback', [GitHubOAuthController::class, 'callback'])
     ->middleware('throttle:github-verify')->name('github.oauth.callback');
 
@@ -34,6 +33,12 @@ Route::middleware('auth')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
     Route::get('/github/connect/project', [GitHubOAuthController::class, 'connectForProject'])
         ->middleware('can:submit-project')->name('github.oauth.project');
+    Route::get('/github/app/install', [GitHubAppInstallationController::class, 'start'])
+        ->middleware('can:submit-project')->name('github.app.install');
+    Route::get('/github/app/installed', [GitHubAppInstallationController::class, 'installed'])
+        ->middleware('can:submit-project')->name('github.app.installed');
+    Route::get('/github/verify/repository', [GitHubVerificationController::class, 'repository'])
+        ->middleware(['can:submit-project', 'throttle:github-verify'])->name('github.verify.repository');
     Route::get('/modules/database/request', [DatabaseWorkspaceController::class, 'requestForm'])->name('database.request.create');
     Route::post('/modules/database/request', [DatabaseWorkspaceController::class, 'storeRequest'])->name('database.request.store');
     Route::get('/database-accounts/{database}', [DatabaseWorkspaceController::class, 'show'])->name('database.show');

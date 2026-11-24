@@ -6,6 +6,7 @@ use App\Models\AuditEvent;
 use App\Models\Project;
 use App\Models\ServiceModule;
 use App\Models\User;
+use App\Support\GitHubAppClient;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -23,7 +24,7 @@ class ProjectSubmissionController extends Controller
         return view('projects.create');
     }
 
-    public function store(Request $request): RedirectResponse
+    public function store(Request $request, GitHubAppClient $github): RedirectResponse
     {
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:120'],
@@ -58,7 +59,33 @@ class ProjectSubmissionController extends Controller
             ]);
         }
 
-        $project = DB::transaction(function () use ($request, $validated, $developer, $githubModule) {
+        $installationId = (int) $request->session()->get('github_app_installation_id', 0);
+        if ($installationId < 1 || ! $github->isConfigured()) {
+            throw ValidationException::withMessages([
+                'repository' => 'Unganisha GitHub App na uchague repository kabla ya kutuma ombi.',
+            ]);
+        }
+
+        try {
+            $accessibleRepositories = $github->repositories($installationId);
+        } catch (\Throwable $exception) {
+            report($exception);
+            throw ValidationException::withMessages([
+                'repository' => 'GitHub repository access haikuweza kuthibitishwa kwa sasa. Jaribu tena baadaye.',
+            ]);
+        }
+
+        $verifiedRepository = collect($accessibleRepositories)->first(fn (array $repo) =>
+            strcasecmp($repo['full_name'], $validated['repository']) === 0
+        );
+
+        if (! $verifiedRepository) {
+            throw ValidationException::withMessages([
+                'repository' => 'GitHub App haina access ya repo hii. Chagua repo iliyowezeshwa wakati wa kuunganisha App.',
+            ]);
+        }
+
+        $project = DB::transaction(function () use ($request, $validated, $developer, $githubModule, $installationId, $verifiedRepository) {
             $slugBase = Str::slug($validated['name']) ?: 'project';
             $slug = $slugBase;
             while (Project::where('slug', $slug)->exists()) {
@@ -75,7 +102,8 @@ class ProjectSubmissionController extends Controller
 
             $repository = $project->repositories()->create([
                 'provider' => 'github',
-                'full_name' => $validated['repository'],
+                'full_name' => $verifiedRepository['full_name'],
+                'github_installation_id' => $installationId,
                 'branch' => $validated['branch'],
             ]);
 

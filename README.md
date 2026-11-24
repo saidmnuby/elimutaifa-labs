@@ -36,15 +36,15 @@ The goal is to make project setup repeatable and easy to manage as more develope
 - New accounts are developers awaiting administrator approval. Administrators can activate or suspend developers.
 - Active developers submit GitHub deployment requests separately with a project name, repository, branch, and requested hostname. Requests stay pending until an administrator assigns a hosting folder and approves them.
 - Developers can submit multiple separate database requests for any of their non-suspended projects, including one whose deployment request is still pending. Each request has its own preferred database-name suffix and admin approval.
-- Developers can verify ownership of a GitHub account through GitHub OAuth. The connection requests only the `read:user` scope, stores the stable GitHub account ID and verified username, and does not store the access token or request repository access.
-- Repository names are entered as `owner/repository` and public repositories are checked live. A private repository and a nonexistent repository are not distinguishable through the unauthenticated public check; both remain subject to admin verification.
+- Developers can verify ownership of a GitHub account through GitHub App OAuth. The connection requests only the `read:user` scope, stores the stable GitHub account ID and verified username, and does not store the user access token.
+- Repository access is verified separately through the ElimuTaifa Labs GitHub App. A developer installs the App on selected repositories; the portal uses a short-lived, read-only installation token to list accessible repositories. A project request is rejected unless the selected repository is accessible to that installation. The installation ID is saved with the repository for later deployment integration.
 - Developer users land directly on GitHub deployment after sign-in. Their sidebar contains only GitHub deployment and Database; there is no separate Workspace menu item. Each module has its own request and approval path.
 - The Database page has a clear **Request a database** action that opens a short form to select an owned project and enter a preferred database name. It also lists project database requests/resources and provides **Open database manager** when database access is active.
 - Admins have a **Database requests** queue. Each request can be approved or rejected separately. To approve, the admin registers the actual cPanel database/user and connection details, confirms that user is assigned only to that database, then activates its access independently of deployment.
 - Admin navigation is in a left sidebar with Overview, Developers, Projects, and Database requests. Developer and project admin screens show totals for all, approved/active, pending, rejected, and suspended; pending developer accounts and deployment projects can be explicitly rejected, and rejected records count separately from suspended ones.
 - Added a database manager for an assigned project database: list and create tables, inspect table columns, browse 25 records per page, add/edit/delete records when a single primary key exists, and delete a table after typing its name to confirm. A single-statement SQL workspace is also available; SELECT results are capped at 100 rows. Actual database creation and assignment remain administrator-managed.
 - Database passwords entered by the administrator are encrypted by Laravel in the dedicated `project_databases.encrypted_password` field. They are never shown in the interface.
-- GitHub OAuth confirms control of the linked GitHub account. It does not prove access to a particular repository or grant repository access; admin review and the administrator's source-read credential remain separate.
+- GitHub OAuth confirms control of the linked GitHub account. GitHub App installation access separately verifies that the App can read a selected repository. Admin project approval and deployment credentials remain separate.
 - Added initial records and screens for projects, repositories, domains, databases, and service modules.
 - Added the first module definitions: `github-deploy` and `database`.
 - Project records keep a database secret reference and the database password in a separate Laravel-encrypted field; never display or log that password.
@@ -54,17 +54,18 @@ The goal is to make project setup repeatable and easy to manage as more develope
 
 ## Where development stands now
 
-This is an early local prototype, not a production-ready customer portal. The user asked to use MySQL from the start and discard SQLite data.
+This is an early customer-portal prototype, deployed for live development but not yet production-ready for customers. The user asked to use MySQL from the start and discard SQLite data.
 
 - The local `.env` is configured to use MySQL database `elimutaifa_labs` on XAMPP.
 - The old SQLite database file was removed as requested. Do not recreate or switch back to SQLite.
 - XAMPP MySQL is now running. The fresh `elimutaifa_labs` database has been created, and Laravel migrations and seeders completed successfully against MySQL; the GitHub identity columns were added on 2026-11-23.
 - The first registered account was promoted from `developer/pending` to `admin/active` in the fresh local database on 2026-11-22.
-- The owner reports that `db.elimutaifa.co.tz` is online and wants the portal hosted there so features can be used live. The portal has not yet been installed or configured on that domain.
+- The owner reports that `db.elimutaifa.co.tz` is online and the Laravel portal is deployed there. The production `.env`, application key, MySQL connection, and migrations have been configured; the owner reports that the system is currently working.
 - The admin registry now has a separate `elimutaifa-labs` entry targeting `db.elimutaifa.co.tz`; its JSON is valid and its repository/branch match this repository's deployment trigger.
-- No remote deployment has been triggered yet. Before deploying, confirm the domain document root is the Laravel `public/` folder, prepare a production `.env` and MySQL database, and install Composer production dependencies. The admin upload workflow does not run `composer install`, and this repository excludes `/vendor`.
+- For future deployments, confirm the domain document root remains Laravel's `public/` folder. The admin upload workflow does not run `composer install`, and this repository excludes `/vendor`.
 - The owner account is already active as platform admin in the local database.
-- Separate GitHub deployment requests, multiple database requests per project, the admin database approval/rejection queue, GitHub OAuth identity verification, module sidebars, admin resource editing, and visual database table/record management are implemented. GitHub OAuth still needs app credentials and an end-to-end authorization run.
+- Separate GitHub deployment requests, multiple database requests per project, the admin database approval/rejection queue, GitHub OAuth identity verification, module sidebars, admin resource editing, and visual database table/record management are implemented.
+- GitHub App `ElimuTaifa Labs` has been registered. The setup callback is configured as `/github/app/installed`; OAuth during installation is disabled so the setup callback can receive the installation ID. App ID, client secret, and private key must be installed only in server environment/configuration. The new repository verification flow is implemented locally but needs deployment, migration, secure credential configuration, and an end-to-end run before it is considered live.
 - Deployment history integration, safe deletion/synchronization behavior, automated database provisioning, and reusable developer repository onboarding still need implementation and review.
 - Review `routes/console.php`: the `platform:make-admin` command currently appears to be defined twice. Remove the duplicate before relying on the command.
 
@@ -72,7 +73,7 @@ This is an early local prototype, not a production-ready customer portal. The us
 
 1. Start Apache and MySQL in XAMPP Control Panel. MySQL must show as running.
 2. Check the local database connection settings in `.env`. Do not copy real passwords into this README or commit `.env`.
-3. To enable GitHub ownership verification, create a GitHub OAuth App. Put its Client ID, Client Secret, and exact callback URL in `.env` as `GITHUB_OAUTH_CLIENT_ID`, `GITHUB_OAUTH_CLIENT_SECRET`, and `GITHUB_OAUTH_REDIRECT_URI`. The callback path is `/github/oauth/callback`; include the actual local or production base URL. The portal requests only `read:user`; it does not ask developers to grant repo access.
+3. To enable GitHub identity and repository verification, configure the GitHub App credentials in `.env`: `GITHUB_OAUTH_CLIENT_ID`, `GITHUB_OAUTH_CLIENT_SECRET`, `GITHUB_OAUTH_REDIRECT_URI`, `GITHUB_APP_ID`, `GITHUB_APP_SLUG`, and `GITHUB_APP_PRIVATE_KEY_PATH`. The OAuth callback is `/github/oauth/callback`; the installation setup callback is `/github/app/installed`. Keep the downloaded private key outside the public web root, never commit it, and restrict its file permissions. The portal requests only `read:user` for identity and uses short-lived read-only installation tokens for selected repositories.
 4. For a new local setup only, create an empty MySQL database named `elimutaifa_labs` in phpMyAdmin, then run:
 
    ```powershell
@@ -104,7 +105,7 @@ If MySQL is unavailable, stop and fix the local MySQL startup/connection first. 
 - Add clear rejection and resubmission handling for project requests.
 - Provide a reusable setup for a developer repository that requests deployment when the approved branch changes.
 - Keep the deployment destination and cPanel credentials exclusively in the administrator-controlled workflow and secret store.
-- Give each private source repository its own least-privilege read token for the admin workflow, or later replace personal tokens with a GitHub App if practical.
+- Use the GitHub App installation ID and short-lived read token for repository verification; later evaluate replacing the admin workflow's per-repository source tokens with narrowly scoped installation tokens.
 - Document token expiry and rotation. A missing, expired, or revoked token should fail clearly and must never print the token.
 
 ### Stage 3 — Reliable deployment records
@@ -163,4 +164,4 @@ Before finishing a development task, update this README in the same change:
 
 ## Current focus
 
-**Verify multiple database requests end-to-end against test databases/users assigned only to one project.** Confirm each request appears separately in the admin queue, can be approved/rejected independently, and each approved database has its own manager link. Verify table creation, structure, record insert/edit/delete, table deletion confirmation, and that another developer cannot open either database. Also verify the independent GitHub deployment flow. Treat `db.elimutaifa.co.tz` as an available hosting resource for a later step; first check its HTTPS, PHP, and hosting-folder setup before deploying anything there.
+**Deploy and configure the GitHub App repository verification flow.** Upload the App private key outside the public web root, set the App ID/client credentials in the server `.env`, run the new migration, clear cached configuration, then connect a GitHub account and install the App on one test repository. Verify that an installed repository is accepted and a different repository is rejected. Afterward continue the separate database isolation checks and verify the independent GitHub deployment flow. Production deployment uses `db.elimutaifa.co.tz`; preserve its working `.env` and database.

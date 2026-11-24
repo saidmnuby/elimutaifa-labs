@@ -39,6 +39,9 @@ return [
         'client_id' => env('GITHUB_OAUTH_CLIENT_ID'),
         'client_secret' => env('GITHUB_OAUTH_CLIENT_SECRET'),
         'redirect_uri' => env('GITHUB_OAUTH_REDIRECT_URI'),
+        'app_id' => env('GITHUB_APP_ID'),
+        'app_slug' => env('GITHUB_APP_SLUG', 'elimutaifa-labs'),
+        'app_private_key_path' => env('GITHUB_APP_PRIVATE_KEY_PATH'),
     ],
 
 ];

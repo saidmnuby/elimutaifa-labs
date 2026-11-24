@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Repository extends Model
 {
-    protected $fillable = ['project_id', 'provider', 'full_name', 'branch', 'workflow_file', 'approved_by', 'approved_at'];
+    protected $fillable = ['project_id', 'provider', 'full_name', 'github_installation_id', 'branch', 'workflow_file', 'approved_by', 'approved_at'];
 
     protected function casts(): array
     {

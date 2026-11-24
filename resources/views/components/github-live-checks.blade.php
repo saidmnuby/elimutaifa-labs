@@ -65,11 +65,15 @@
                         if (result.status === 'found') {
                             show('found', isUsername
                                 ? 'GitHub profile exists. This does not verify account ownership.'
-                                : 'Public repository found. Admin will still review access.');
+                                : `GitHub App access verified${result.private ? ' (private repository)' : ''}.`);
                         } else if (result.status === 'not_found') {
                             show('not-found', 'GitHub username was not found. Check the spelling.');
                         } else if (result.status === 'not_publicly_visible') {
                             show('unknown', 'Not visible publicly. It may be private or misspelled; admin will review it.');
+                        } else if (result.status === 'installation_required') {
+                            show('unknown', 'Connect the GitHub App and select this repository first.');
+                        } else if (result.status === 'not_accessible') {
+                            show('not-found', 'The GitHub App does not have access to this repository. Select it during installation.');
                         } else {
                             show('unknown', 'GitHub could not verify this now. Try again shortly.');
                         }
