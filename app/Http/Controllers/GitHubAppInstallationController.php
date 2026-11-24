@@ -10,7 +10,7 @@ use Throwable;
 
 class GitHubAppInstallationController extends Controller
 {
-    public function start(Request $request): RedirectResponse
+    public function start(Request $request, GitHubAppClient $github): RedirectResponse
     {
         $developer = $request->user();
 
@@ -21,8 +21,41 @@ class GitHubAppInstallationController extends Controller
             );
         }
 
-        if (blank(config('services.github.app_slug'))) {
+        if (blank(config('services.github.app_slug')) || ! $github->isConfigured()) {
             return back()->withErrors(['repository' => 'GitHub App haijasanidiwa. Wasiliana na admin.']);
+        }
+
+        if (! $request->boolean('manage')) {
+            try {
+                $installationId = $github->installationForUser($developer->github_username);
+
+                if ($installationId) {
+                    $installation = $github->installation($installationId);
+                    if (strcasecmp($installation['account_login'], (string) $developer->github_username) !== 0) {
+                        throw new \RuntimeException('GitHub installation account does not match the verified developer.');
+                    }
+
+                    $repositories = $github->repositories($installationId);
+                    if ($repositories !== []) {
+                        $request->session()->put([
+                            'github_app_installation_id' => $installationId,
+                            'github_app_account_login' => $installation['account_login'],
+                            'github_app_repositories' => array_column($repositories, 'full_name'),
+                        ]);
+
+                        return redirect()->route('projects.create')->with(
+                            'success',
+                            'GitHub App tayari imeunganishwa. Repo ulizoruhusu zimepakiwa kwenye orodha.'
+                        );
+                    }
+                }
+            } catch (Throwable $exception) {
+                report($exception);
+
+                return redirect()->route('projects.create')->withErrors([
+                    'repository' => 'GitHub installation haikuweza kuhakikiwa. Jaribu tena au wasiliana na admin.',
+                ]);
+            }
         }
 
         $state = Str::random(64);

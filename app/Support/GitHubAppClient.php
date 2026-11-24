@@ -46,6 +46,26 @@ class GitHubAppClient
         return ['account_login' => $login, 'account_type' => $type];
     }
 
+    public function installationForUser(string $username): ?int
+    {
+        $response = Http::acceptJson()
+            ->withToken($this->jwt())
+            ->withUserAgent('ElimuTaifa-Labs')
+            ->timeout(12)
+            ->get('https://api.github.com/users/'.rawurlencode($username).'/installation');
+
+        if ($response->status() === 404) {
+            return null;
+        }
+
+        $installationId = $response->json('id');
+        if (! $response->successful() || ! is_int($installationId) || $installationId < 1) {
+            throw new RuntimeException('GitHub could not find this account installation.');
+        }
+
+        return $installationId;
+    }
+
     /** @return list<array{id: int, full_name: string, private: bool}> */
     public function repositories(int $installationId): array
     {

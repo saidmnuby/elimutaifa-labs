@@ -155,7 +155,7 @@
                 <div class="onboarding-completed">
                     <span class="onboarding-check" aria-hidden="true">✓</span>
                     <span><strong>Repository access verified</strong><small>{{ '@'.$githubInstallationAccount }} · {{ count($githubInstallationRepositories) }} {{ \Illuminate\Support\Str::plural('repository', count($githubInstallationRepositories)) }} available</small></span>
-                    <a class="onboarding-secondary" href="{{ route('github.app.install') }}">Manage access</a>
+                    <a class="onboarding-secondary" href="{{ route('github.app.install', ['manage' => 1]) }}">Manage access</a>
                 </div>
 
                 <form method="post" action="{{ route('projects.store') }}" class="onboarding-form">
