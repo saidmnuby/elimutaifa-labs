@@ -24,9 +24,11 @@
         .sidebar-link{display:flex;align-items:center;gap:10px;padding:10px;border-radius:8px;color:var(--ink);font-weight:600}
         .sidebar-link:hover,.sidebar-link.active{background:#eef4ff;color:var(--blue-dark);text-decoration:none}
         .sidebar-icon{display:grid;place-items:center;width:24px;height:24px;border-radius:7px;background:#f2f4f7;color:var(--blue);font-size:12px;font-weight:800}
+        .system-settings-card{margin-top:14px;padding:12px 8px;border:1px solid var(--line);border-radius:10px;background:#fafbfc}
+        .system-settings-card .sidebar-heading{padding-bottom:4px}
         .badge.rejected{background:var(--red);color:#b42318}.cards.developer-metrics{grid-template-columns:repeat(auto-fit,minmax(145px,1fr))}
         .live-check{display:block;margin-top:6px;font-size:12px}.live-check[hidden]{display:none}.live-check[data-state="checking"]{color:var(--muted)}.live-check[data-state="found"]{color:#067647;font-weight:700}.live-check[data-state="not-found"]{color:#b42318;font-weight:700}.live-check[data-state="unknown"]{color:#93370d}
-        @media(max-width:800px){.workspace-shell{grid-template-columns:1fr;gap:16px;margin-top:20px}.developer-sidebar,.admin-sidebar{position:static;display:flex;align-items:center;gap:6px;overflow-x:auto;padding:9px}.sidebar-heading{display:none}.sidebar-link{white-space:nowrap;font-size:13px}.workspace-shell main{margin:0 0 30px}}
+        @media(max-width:800px){.workspace-shell{grid-template-columns:1fr;gap:16px;margin-top:20px}.developer-sidebar,.admin-sidebar{position:static;display:flex;align-items:center;gap:6px;overflow-x:auto;padding:9px}.sidebar-heading{display:none}.sidebar-link{white-space:nowrap;font-size:13px}.system-settings-card{flex:0 0 auto;margin-top:0;padding:0;border:0;background:transparent}.workspace-shell main{margin:0 0 30px}}
     </style>
 </head>
 <body>
@@ -35,9 +37,6 @@
         <div class="top-actions">
             @auth
                 <span>{{ auth()->user()->name }}</span>
-                @if (auth()->user()->email_verified_at)
-                    <a href="{{ route('password.change.form') }}">Change password</a>
-                @endif
                 <form method="post" action="{{ route('logout') }}">@csrf<button class="link-button" type="submit">Sign out</button></form>
             @else
                 <a href="{{ route('login') }}">Sign in</a>
@@ -57,6 +56,12 @@
                     <div class="sidebar-heading">Developer services</div>
                     <a class="sidebar-link {{ request()->route('moduleKey') === 'github-deploy' ? 'active' : '' }}" href="{{ route('modules.show', 'github-deploy') }}"><span class="sidebar-icon">G</span>GitHub deployment</a>
                     <a class="sidebar-link {{ request()->route('moduleKey') === 'database' ? 'active' : '' }}" href="{{ route('modules.show', 'database') }}"><span class="sidebar-icon">D</span>Database</a>
+                @endif
+                @if (auth()->user()->email_verified_at)
+                    <section class="system-settings-card" aria-label="System settings">
+                        <div class="sidebar-heading">System settings</div>
+                        <a class="sidebar-link {{ request()->routeIs('password.change.form') ? 'active' : '' }}" href="{{ route('password.change.form') }}"><span class="sidebar-icon">S</span>Change password</a>
+                    </section>
                 @endif
             </nav>
     @endauth
