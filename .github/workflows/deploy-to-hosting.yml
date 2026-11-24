@@ -12,11 +12,10 @@ jobs:
       - name: Trigger approved deployment
         env:
           GH_TOKEN: ${{ secrets.DEPLOY_TRIGGER_TOKEN }}
-          PROJECT_ID: elimutaifa-labs
         run: |
           curl --fail-with-body --silent --show-error \
             -X POST \
             -H "Accept: application/vnd.github+json" \
             -H "Authorization: Bearer $GH_TOKEN" \
             https://api.github.com/repos/saidmnuby/mitandao/actions/workflows/deploy.yml/dispatches \
-            -d "{\"ref\":\"main\",\"inputs\":{\"project\":\"$PROJECT_ID\",\"source_sha\":\"$GITHUB_SHA\"}}"
+          -d "{\"ref\":\"main\",\"inputs\":{\"deployment_id\":\"0\",\"repository\":\"saidmnuby/elimutaifa-labs\",\"branch\":\"main\",\"target\":\"/home/elimutai/db.elimutaifa.co.tz\",\"source_sha\":\"$GITHUB_SHA\"}}"
