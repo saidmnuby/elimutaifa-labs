@@ -9,6 +9,7 @@ use App\Models\ProjectDatabaseRequest;
 use App\Models\ServiceModule;
 use App\Models\User;
 use App\Support\SystemMailer;
+use App\Support\ActivityLogger;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -152,7 +153,7 @@ class DatabaseWorkspaceController extends Controller
             ->header('Expires', '0');
     }
 
-    public function export(ProjectDatabase $database)
+    public function export(Request $request, ProjectDatabase $database)
     {
         $this->authorizeDatabase($database);
         $connection = $this->connection($database);
@@ -160,7 +161,7 @@ class DatabaseWorkspaceController extends Controller
         $tableNames = $this->listTables($connection);
         $filename = preg_replace('/[^A-Za-z0-9_-]/', '_', $database->database_name).'-backup-'.now()->format('Y-m-d-His').'.sql';
 
-        return Response::streamDownload(function () use ($pdo, $tableNames, $database) {
+        return Response::streamDownload(function () use ($pdo, $tableNames, $database, $request) {
             echo "-- SQL backup for {$database->database_name}\n";
             echo '-- Exported at '.now()->toIso8601String()."\n\n";
             echo "SET FOREIGN_KEY_CHECKS=0;\n\n";
@@ -213,6 +214,7 @@ class DatabaseWorkspaceController extends Controller
             }
 
             echo "SET FOREIGN_KEY_CHECKS=1;\n";
+            ActivityLogger::record($request, 'database.exported', $database->project_id, ProjectDatabase::class, $database->id, ['table_count' => count($tableNames)]);
         }, $filename, ['Content-Type' => 'application/sql; charset=UTF-8']);
     }
 
@@ -271,9 +273,11 @@ class DatabaseWorkspaceController extends Controller
                     $queryRows = $connection->select($sql);
                     $queryColumns = isset($queryRows[0]) ? array_keys((array) $queryRows[0]) : [];
                     $queryMessage = count($queryRows).' rows returned (maximum 100).';
+                    ActivityLogger::record($request, 'database.query_executed', $database->project_id, ProjectDatabase::class, $database->id, ['operation' => $verb]);
                 } else {
                     $connection->unprepared($sql);
                     $queryMessage = 'Database command completed.';
+                    ActivityLogger::record($request, 'database.query_executed', $database->project_id, ProjectDatabase::class, $database->id, ['operation' => $verb]);
                 }
             } catch (\InvalidArgumentException $exception) {
                 $queryError = $exception->getMessage();

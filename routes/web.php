@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\ActivityLogController;
 use App\Http\Controllers\EmailSecurityController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DeveloperModuleController;
@@ -64,6 +65,7 @@ Route::middleware('auth')->group(function () {
     Route::post('/account/email/verify', [EmailSecurityController::class, 'verifyEmailChange'])->middleware('throttle:email-code')->name('email.change.verify');
     Route::post('/account/email/verify/resend', [EmailSecurityController::class, 'resendEmailChangeCode'])->middleware('throttle:email-resend')->name('email.change.resend');
     Route::post('/account/email/cancel', [EmailSecurityController::class, 'cancelEmailChange'])->name('email.change.cancel');
+    Route::get('/activities', [ActivityLogController::class, 'index'])->name('activities.index');
     Route::get('/dashboard', DashboardController::class)->name('dashboard');
     Route::get('/github/connect/project', [GitHubOAuthController::class, 'connectForProject'])
         ->middleware('can:submit-project')->name('github.oauth.project');

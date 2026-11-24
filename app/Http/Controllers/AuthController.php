@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\User;
+use App\Support\ActivityLogger;
 use App\Support\SystemMailer;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -84,6 +85,7 @@ class AuthController extends Controller
         $security->forgetPendingRegistration($request);
         Auth::login($user);
         $request->session()->regenerate();
+        ActivityLogger::record($request, 'account.registered');
         $mailer->admins('New developer registration · Elimutaifa Labs', [
             'eyebrow' => 'New account request',
             'title' => 'A developer has registered',
@@ -123,6 +125,7 @@ class AuthController extends Controller
         }
 
         $request->session()->regenerate();
+        ActivityLogger::record($request, 'account.login');
 
         if (! auth()->user()->email_verified_at) {
             $sent = app(EmailSecurityController::class)->sendCode(auth()->user()->email, 'verify_email');
@@ -136,6 +139,7 @@ class AuthController extends Controller
 
     public function logout(Request $request): RedirectResponse
     {
+        ActivityLogger::record($request, 'account.logout');
         Auth::logout();
         $request->session()->invalidate();
         $request->session()->regenerateToken();

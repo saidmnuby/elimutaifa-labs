@@ -6,6 +6,7 @@ use App\Models\Project;
 use App\Models\ProjectDatabase;
 use App\Models\ServiceModule;
 use App\Models\User;
+use App\Support\ActivityLogger;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -106,6 +107,11 @@ class DatabaseTableController extends Controller
             return back()->withInput()->withErrors(['table_name' => 'Table halikuundwa. Kagua majina na ruhusa za database user.']);
         }
 
+        ActivityLogger::record($request, 'database.table.created', $database->project_id, ProjectDatabase::class, $database->id, [
+            'table' => $validated['table_name'],
+            'column_count' => count($validated['columns']),
+        ]);
+
         return redirect()->route('database.tables.show', [$database, $validated['table_name']])->with('success', 'Table limeundwa.');
     }
 
@@ -116,6 +122,7 @@ class DatabaseTableController extends Controller
         $request->validate(['confirm_table' => ['required', Rule::in([$table])]]);
 
         Schema::connection($this->connectionName($database))->drop($table);
+        ActivityLogger::record($request, 'database.table.deleted', $database->project_id, ProjectDatabase::class, $database->id, ['table' => $table]);
 
         return redirect()->route('database.show', $database)->with('success', "Table {$table} limefutwa.");
     }
@@ -157,6 +164,8 @@ class DatabaseTableController extends Controller
             return back()->withInput()->withErrors(['data' => 'Record haikuongezwa. Kagua thamani na required fields za table.']);
         }
 
+        ActivityLogger::record($request, 'database.row.created', $database->project_id, ProjectDatabase::class, $database->id, ['table' => $table]);
+
         return redirect()->route('database.tables.show', [$database, $table])->with('success', 'Record imeongezwa.');
     }
 
@@ -196,10 +205,14 @@ class DatabaseTableController extends Controller
         }
         abort_unless($connection->table($table)->where($primaryKey, $rowKey)->exists(), 404);
 
+        if ($updated) {
+            ActivityLogger::record($request, 'database.row.updated', $database->project_id, ProjectDatabase::class, $database->id, ['table' => $table]);
+        }
+
         return redirect()->route('database.tables.show', [$database, $table])->with('success', $updated ? 'Record imesasishwa.' : 'Hakuna mabadiliko mapya kwenye record.');
     }
 
-    public function deleteRow(ProjectDatabase $database, string $table, string $rowKey): RedirectResponse
+    public function deleteRow(Request $request, ProjectDatabase $database, string $table, string $rowKey): RedirectResponse
     {
         $this->authorizeDatabase($database);
         $connection = $this->connection($database);
@@ -208,6 +221,7 @@ class DatabaseTableController extends Controller
         abort_unless($primaryKey, 404, 'Table needs a single primary key to delete records safely.');
         $deleted = $connection->table($table)->where($primaryKey, $rowKey)->delete();
         abort_unless($deleted === 1, 404);
+        ActivityLogger::record($request, 'database.row.deleted', $database->project_id, ProjectDatabase::class, $database->id, ['table' => $table]);
 
         return redirect()->route('database.tables.show', [$database, $table])->with('success', 'Record imefutwa.');
     }

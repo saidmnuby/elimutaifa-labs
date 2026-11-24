@@ -11,6 +11,7 @@ use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rules\Password;
 use Illuminate\View\View;
+use App\Support\ActivityLogger;
 
 class EmailSecurityController extends Controller
 {
@@ -414,6 +415,7 @@ class EmailSecurityController extends Controller
         $oldEmail = $request->user()->email;
         $request->user()->forceFill(['email' => $newEmail, 'email_verified_at' => now()])->save();
         $request->session()->forget('pending_email_change');
+        ActivityLogger::record($request, 'account.email_changed');
         app(\App\Support\SystemMailer::class)->to($oldEmail, 'Email address changed · Elimutaifa Labs', [
             'eyebrow' => 'Account security',
             'title' => 'Your account email was changed',
