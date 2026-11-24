@@ -177,3 +177,5 @@ Before finishing a development task, update this README in the same change:
 ## Current focus
 
 **Finish and deploy email account security safely.** First configure a working SMTP mailer in the live portal `.env` and confirm a test email arrives. Then deploy the current code, run migration `2026_11_24_000003_create_email_security_codes_table.php` on cPanel, clear Laravel's config cache, and verify registration, email code verification, password reset, and authenticated password change for both admin and developer accounts. Do not deploy the verification gate before SMTP is working, because it also blocks existing unverified admin accounts. The portal's webhook code, SQL backup, and database workspace still require their separate live checks listed above.
+24_000003@hm105 db.elimutaifa.co.tz]$ php artisan migrate:status | grep 2026_11_2
+[elimutai@hm105 db.elimutaifa.co.tz]$
