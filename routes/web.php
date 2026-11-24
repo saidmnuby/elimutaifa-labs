@@ -19,7 +19,11 @@ Route::post('/github/deployment-callback', [GitHubDeploymentWebhookController::c
 
 Route::get('/', fn () => auth()->check()
     ? redirect()->route('dashboard')
-    : redirect()->route('login'));
+    : response()->view('welcome'));
+
+Route::get('/sitemap.xml', fn () => response()->view('sitemap')
+    ->header('Content-Type', 'application/xml; charset=UTF-8'))
+    ->name('sitemap');
 
 Route::get('/github/oauth/callback', [GitHubOAuthController::class, 'callback'])
     ->middleware('throttle:github-verify')->name('github.oauth.callback');
@@ -54,6 +58,12 @@ Route::middleware('auth')->group(function () {
     Route::middleware('email.verified')->group(function () {
     Route::get('/account/password', [EmailSecurityController::class, 'changePasswordForm'])->name('password.change.form');
     Route::put('/account/password', [EmailSecurityController::class, 'changePassword'])->middleware('throttle:password-change')->name('password.change');
+    Route::get('/account/email', [EmailSecurityController::class, 'changeEmailForm'])->name('email.change.form');
+    Route::post('/account/email', [EmailSecurityController::class, 'requestEmailChange'])->middleware('throttle:email-code')->name('email.change.request');
+    Route::get('/account/email/verify', [EmailSecurityController::class, 'emailChangeCodeForm'])->name('email.change.verify.form');
+    Route::post('/account/email/verify', [EmailSecurityController::class, 'verifyEmailChange'])->middleware('throttle:email-code')->name('email.change.verify');
+    Route::post('/account/email/verify/resend', [EmailSecurityController::class, 'resendEmailChangeCode'])->middleware('throttle:email-resend')->name('email.change.resend');
+    Route::post('/account/email/cancel', [EmailSecurityController::class, 'cancelEmailChange'])->name('email.change.cancel');
     Route::get('/dashboard', DashboardController::class)->name('dashboard');
     Route::get('/github/connect/project', [GitHubOAuthController::class, 'connectForProject'])
         ->middleware('can:submit-project')->name('github.oauth.project');

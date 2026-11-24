@@ -38,15 +38,18 @@ class EmailSecurityController extends Controller
         ]);
 
         $verification = $purpose === 'verify_email';
+        $emailChange = $purpose === 'change_email';
         $sent = app(\App\Support\SystemMailer::class)->to(
             $email,
-            $verification ? 'Verify your email · Elimutaifa Labs' : 'Password reset code · Elimutaifa Labs',
+            $verification ? 'Verify your email · Elimutaifa Labs' : ($emailChange ? 'Confirm your new email · Elimutaifa Labs' : 'Password reset code · Elimutaifa Labs'),
             [
-                'eyebrow' => $verification ? 'Email verification' : 'Account security',
-                'title' => $verification ? 'Verify your email' : 'Reset your password',
+                'eyebrow' => $verification ? 'Email verification' : ($emailChange ? 'Email change' : 'Account security'),
+                'title' => $verification ? 'Verify your email' : ($emailChange ? 'Confirm your new email' : 'Reset your password'),
                 'intro' => $verification
                     ? 'Use this code to verify your email and finish setting up your account.'
-                    : 'Use this code to confirm your email and choose a new password.',
+                    : ($emailChange
+                        ? 'Use this code to confirm this new email address for your Elimutaifa Labs account.'
+                        : 'Use this code to confirm your email and choose a new password.'),
                 'code' => $code,
                 'note' => 'This code expires in 10 minutes. If you did not request it, you can ignore this email.',
             ]
@@ -361,6 +364,87 @@ class EmailSecurityController extends Controller
         $request->user()->forceFill(['password' => $data['password']])->save();
 
         return back()->with('success', 'Your password has been changed.');
+    }
+
+    public function changeEmailForm(): View
+    {
+        return view('auth.change-email');
+    }
+
+    public function requestEmailChange(Request $request): RedirectResponse
+    {
+        $data = $request->validate(['email' => ['required', 'email', 'max:255', 'unique:users,email']]);
+        $newEmail = mb_strtolower($data['email']);
+        if ($newEmail === mb_strtolower($request->user()->email)) {
+            return back()->withErrors(['email' => 'Enter a different email address.'])->withInput();
+        }
+
+        if (! $this->sendCode($newEmail, 'change_email')) {
+            return back()->withErrors(['email' => 'We could not send a verification code. Check email settings and try again.'])->withInput();
+        }
+
+        $request->session()->put('pending_email_change', $newEmail);
+
+        return redirect()->route('email.change.verify.form')->with('success', 'A verification code was sent to your new email address.');
+    }
+
+    public function emailChangeCodeForm(Request $request): View|RedirectResponse
+    {
+        if (! $request->session()->has('pending_email_change')) {
+            return redirect()->route('email.change.form');
+        }
+
+        return view('auth.verify-email-change', ['newEmail' => $request->session()->get('pending_email_change')]);
+    }
+
+    public function verifyEmailChange(Request $request): RedirectResponse
+    {
+        $request->validate(['code' => ['required', 'digits:6']]);
+        $newEmail = $request->session()->get('pending_email_change');
+        if (! is_string($newEmail) || $newEmail === '') {
+            return redirect()->route('email.change.form');
+        }
+        if (User::where('email', $newEmail)->where('id', '!=', $request->user()->id)->exists()) {
+            return redirect()->route('email.change.form')->withErrors(['email' => 'That email is already in use. Enter another one.']);
+        }
+        if (! $this->consumeCode($newEmail, 'change_email', $request->string('code')->toString())) {
+            return back()->withErrors(['code' => 'The code is invalid, expired, or has reached its attempt limit. Request a new one.']);
+        }
+
+        $oldEmail = $request->user()->email;
+        $request->user()->forceFill(['email' => $newEmail, 'email_verified_at' => now()])->save();
+        $request->session()->forget('pending_email_change');
+        app(\App\Support\SystemMailer::class)->to($oldEmail, 'Email address changed · Elimutaifa Labs', [
+            'eyebrow' => 'Account security',
+            'title' => 'Your account email was changed',
+            'intro' => 'The email address on your Elimutaifa Labs account has been changed.',
+            'details' => ['New email' => $newEmail],
+            'note' => 'If you did not make this change, contact platform support immediately.',
+        ]);
+
+        return redirect()->route('email.change.form')->with('success', 'New email verified and saved.');
+    }
+
+    public function resendEmailChangeCode(Request $request): RedirectResponse
+    {
+        $email = $request->session()->get('pending_email_change');
+        if (! is_string($email) || $email === '') {
+            return redirect()->route('email.change.form');
+        }
+
+        return $this->sendCode($email, 'change_email')
+            ? back()->with('success', 'A new verification code was sent.')
+            : back()->withErrors(['code' => 'We could not send the code. Try again later.']);
+    }
+
+    public function cancelEmailChange(Request $request): RedirectResponse
+    {
+        $email = $request->session()->pull('pending_email_change');
+        if (is_string($email)) {
+            DB::table('email_security_codes')->where('email', $email)->where('purpose', 'change_email')->delete();
+        }
+
+        return redirect()->route('email.change.form')->with('success', 'Email change cancelled.');
     }
 
     private function consumeCode(string $email, string $purpose, string $code): bool
