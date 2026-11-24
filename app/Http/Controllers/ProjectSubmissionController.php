@@ -7,6 +7,7 @@ use App\Models\Project;
 use App\Models\ServiceModule;
 use App\Models\User;
 use App\Support\GitHubAppClient;
+use App\Support\SystemMailer;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -32,7 +33,7 @@ class ProjectSubmissionController extends Controller
         ]);
     }
 
-    public function store(Request $request, GitHubAppClient $github): RedirectResponse
+    public function store(Request $request, GitHubAppClient $github, SystemMailer $mailer): RedirectResponse
     {
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:120'],
@@ -135,6 +136,20 @@ class ProjectSubmissionController extends Controller
 
             return $project;
         });
+
+        $mailer->admins('New project request · Elimutaifa Labs', [
+            'eyebrow' => 'Project request',
+            'title' => 'A project needs review',
+            'intro' => 'A developer submitted a project for hosting approval.',
+            'details' => [
+                'Project' => $project->name,
+                'Developer' => $developer->name,
+                'Repository' => $verifiedRepository['full_name'],
+                'Domain' => Str::lower($validated['hostname']),
+            ],
+            'button_label' => 'Review projects',
+            'button_url' => route('admin.projects'),
+        ]);
 
         return redirect()->route('dashboard')->with('success', "Ombi la project {$project->name} limetumwa kwa admin approval.");
     }

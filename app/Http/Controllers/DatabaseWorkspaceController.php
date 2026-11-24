@@ -8,6 +8,7 @@ use App\Models\ProjectDatabase;
 use App\Models\ProjectDatabaseRequest;
 use App\Models\ServiceModule;
 use App\Models\User;
+use App\Support\SystemMailer;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -38,7 +39,7 @@ class DatabaseWorkspaceController extends Controller
         ]);
     }
 
-    public function storeRequest(Request $request): RedirectResponse
+    public function storeRequest(Request $request, SystemMailer $mailer): RedirectResponse
     {
         $validated = $request->validate([
             'project_id' => ['required', 'integer', 'exists:projects,id'],
@@ -70,6 +71,19 @@ class DatabaseWorkspaceController extends Controller
             'subject_id' => (string) $databaseRequest->id,
             'details' => ['project_id' => $project->id, 'requested_name_suffix' => $databaseRequest->requested_name_suffix],
             'ip_address' => $request->ip(),
+        ]);
+
+        $mailer->admins('New database request · Elimutaifa Labs', [
+            'eyebrow' => 'Database request',
+            'title' => 'A database needs review',
+            'intro' => 'A developer requested a database for a project.',
+            'details' => [
+                'Project' => $project->name,
+                'Developer' => $request->user()->name,
+                'Requested name' => $databaseRequest->requested_name_suffix,
+            ],
+            'button_label' => 'Review database requests',
+            'button_url' => route('admin.database-requests'),
         ]);
 
         return redirect()->route('modules.show', 'database')->with('success', 'Ombi la database limetumwa kwa admin.');

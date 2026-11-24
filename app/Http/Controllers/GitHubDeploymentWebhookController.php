@@ -8,6 +8,7 @@ use App\Models\Project;
 use App\Models\Repository;
 use App\Models\ServiceModule;
 use App\Support\GitHubDeploymentDispatcher;
+use App\Support\SystemMailer;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -136,7 +137,7 @@ class GitHubDeploymentWebhookController extends Controller
         return response()->json(['received' => true, 'deployment_id' => $deployment->id], 202);
     }
 
-    public function callback(Request $request): JsonResponse
+    public function callback(Request $request, SystemMailer $mailer): JsonResponse
     {
         $secret = (string) config('services.github.deploy_callback_secret');
         $timestamp = (string) $request->header('X-Deployment-Timestamp', '');
@@ -178,6 +179,43 @@ class GitHubDeploymentWebhookController extends Controller
             'failure_summary' => $status === 'failure' ? 'GitHub Actions deployment step failed.' : null,
             'finished_at' => now(),
         ])->save();
+
+        $deployment->load(['project.owner', 'repository']);
+        $project = $deployment->project;
+        $success = $status === 'success';
+        $details = [
+            'Project' => $project?->name ?? 'Project',
+            'Repository' => $deployment->repository?->full_name ?? 'Unknown',
+            'Commit' => substr($deployment->commit_sha, 0, 12),
+            'Result' => $success ? 'Succeeded' : ($status === 'cancelled' ? 'Cancelled' : 'Failed'),
+        ];
+        $mailer->admins('Deployment '.($success ? 'succeeded' : 'failed').' · Elimutaifa Labs', [
+            'eyebrow' => 'Deployment update',
+            'title' => $success ? 'Deployment completed' : 'Deployment needs attention',
+            'intro' => $success
+                ? 'A registered project was deployed successfully.'
+                : 'A registered project deployment did not complete successfully.',
+            'details' => $details,
+            'button_label' => 'Open projects',
+            'button_url' => route('admin.projects'),
+        ]);
+
+        if ($project?->owner) {
+            $mailer->to(
+                $project->owner->email,
+                'Deployment '.($success ? 'completed' : 'failed').' · Elimutaifa Labs',
+                [
+                    'eyebrow' => 'Deployment update',
+                    'title' => $success ? 'Your deployment is live' : 'Your deployment needs attention',
+                    'intro' => $success
+                        ? 'The latest version of your project was deployed successfully.'
+                        : 'The latest deployment did not complete. Please check the deployment status in your workspace.',
+                    'details' => $details,
+                    'button_label' => 'Open workspace',
+                    'button_url' => route('modules.show', 'github-deploy'),
+                ]
+            );
+        }
 
         AuditEvent::create([
             'project_id' => $deployment->project_id,

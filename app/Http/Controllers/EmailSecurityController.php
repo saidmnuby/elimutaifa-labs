@@ -8,7 +8,6 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Cache;
-use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rules\Password;
 use Illuminate\View\View;
@@ -38,17 +37,26 @@ class EmailSecurityController extends Controller
             'updated_at' => now(),
         ]);
 
-        $subject = $purpose === 'verify_email' ? 'Verify your Elimutaifa Labs email' : 'Your Elimutaifa Labs password reset code';
-        try {
-            Mail::raw("Your verification code is: {$code}\n\nIt expires in 10 minutes. If you did not request this, you can ignore this email.", function ($message) use ($email, $subject) {
-                $message->to($email)->subject($subject);
-            });
-            return true;
-        } catch (\Throwable $exception) {
+        $verification = $purpose === 'verify_email';
+        $sent = app(\App\Support\SystemMailer::class)->to(
+            $email,
+            $verification ? 'Verify your email · Elimutaifa Labs' : 'Password reset code · Elimutaifa Labs',
+            [
+                'eyebrow' => $verification ? 'Email verification' : 'Account security',
+                'title' => $verification ? 'Verify your email' : 'Reset your password',
+                'intro' => $verification
+                    ? 'Use this code to verify your email and finish setting up your account.'
+                    : 'Use this code to confirm your email and choose a new password.',
+                'code' => $code,
+                'note' => 'This code expires in 10 minutes. If you did not request it, you can ignore this email.',
+            ]
+        );
+        if (! $sent) {
             DB::table('email_security_codes')->where('email', $email)->where('purpose', $purpose)->delete();
-            report($exception);
             return false;
         }
+
+        return true;
     }
 
     public function verificationNotice(): View|RedirectResponse
@@ -188,16 +196,19 @@ class EmailSecurityController extends Controller
         $expiresAt = now()->addMinutes(self::CODE_MINUTES);
         Cache::store('file')->put($key, ['hash' => Hash::make($code), 'attempts' => 0, 'expires_at' => $expiresAt->timestamp], $expiresAt);
 
-        try {
-            Mail::raw("Your ElimuTaifa Labs verification code is: {$code}\n\nIt expires in 10 minutes. If you did not request this, you can ignore this email.", function ($message) use ($email) {
-                $message->to($email)->subject('Verify your ElimuTaifa Labs email');
-            });
-            return true;
-        } catch (\Throwable $exception) {
+        $sent = app(\App\Support\SystemMailer::class)->to($email, 'Verify your email · ElimuTaifa Labs', [
+            'eyebrow' => 'Email verification',
+            'title' => 'Verify your email',
+            'intro' => 'Use this code to verify your email and continue creating your account.',
+            'code' => $code,
+            'note' => 'This code expires in 10 minutes. If you did not request it, you can ignore this email.',
+        ]);
+        if (! $sent) {
             Cache::store('file')->forget($key);
-            report($exception);
             return false;
         }
+
+        return true;
     }
 
     private function consumeRegistrationCode(string $email, string $code): bool

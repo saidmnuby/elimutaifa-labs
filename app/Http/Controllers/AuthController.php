@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\User;
+use App\Support\SystemMailer;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -51,7 +52,7 @@ class AuthController extends Controller
             : 'Email delivery is not configured yet. Contact the platform admin.');
     }
 
-    public function completeRegistration(Request $request): RedirectResponse
+    public function completeRegistration(Request $request, SystemMailer $mailer): RedirectResponse
     {
         $security = app(EmailSecurityController::class);
         $draft = $security->pendingRegistration($request);
@@ -83,6 +84,14 @@ class AuthController extends Controller
         $security->forgetPendingRegistration($request);
         Auth::login($user);
         $request->session()->regenerate();
+        $mailer->admins('New developer registration · Elimutaifa Labs', [
+            'eyebrow' => 'New account request',
+            'title' => 'A developer has registered',
+            'intro' => 'A new developer account is waiting for your review.',
+            'details' => ['Developer' => $user->name, 'Email' => $user->email],
+            'button_label' => 'Review developers',
+            'button_url' => route('admin.developers'),
+        ]);
 
         return redirect()->route('dashboard')->with('success', 'Your account has been created. It is now waiting for admin approval.');
     }
