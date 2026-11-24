@@ -21,7 +21,15 @@ class ProjectSubmissionController extends Controller
     {
         abort_unless(ServiceModule::where('key', 'github-deploy')->where('is_enabled', true)->exists(), 404);
 
-        return view('projects.create');
+        $repositories = $request->session()->get('github_app_repositories', []);
+
+        return view('projects.create', [
+            'githubInstallationRepositories' => is_array($repositories) ? $repositories : [],
+            'githubInstallationAccount' => $request->session()->get('github_app_account_login'),
+            'githubAppConnected' => (int) $request->session()->get('github_app_installation_id', 0) > 0
+                && is_array($repositories)
+                && $repositories !== [],
+        ]);
     }
 
     public function store(Request $request, GitHubAppClient $github): RedirectResponse
