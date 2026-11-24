@@ -25,7 +25,7 @@ The goal is to make project setup repeatable and easy to manage as more develope
 
 - Confirmed that GitHub Actions can reach the cPanel API over HTTPS on port 2083.
 - Built and used an administrator-owned deployment workflow that looks up approved project settings, checks out the approved repository, and uploads project files to its configured hosting folder through the cPanel API.
-- The project registry is intended to control the allowed repository, branch, destination folder, and source-token secret name. Never let a developer choose the destination folder in their own workflow.
+- Deployment destination and branch come from the administrator-approved portal record. Never accept a destination folder from a developer-controlled workflow.
 - Earlier cPanel Git deployment tests could report success without publishing files to the intended subdomain. Treat “deployment task succeeded” and “the live site contains the latest files” as separate checks.
 - Direct FTP deployment was tested and ran into a hosting data-connection timeout. The current portal plan uses the cPanel API upload flow instead.
 
@@ -69,8 +69,12 @@ This is an early customer-portal prototype, deployed for live development but no
 - Separate GitHub deployment requests, multiple database requests per project, the admin database approval/rejection queue, GitHub OAuth identity verification, module sidebars, admin resource editing, and visual database table/record management are implemented.
 - GitHub App `ElimuTaifa Labs` is registered and configured. The setup callback is `/github/app/installed`; OAuth during installation is disabled so the setup callback can receive the installation ID. The App private key is stored outside the web root on cPanel with restrictive file permissions. App credentials are configured in the production environment, configuration cache was cleared, and the repository installation migration ran successfully. The owner reports that GitHub repository verification succeeded.
 - A clearer three-step project submission screen has been implemented locally after the App verification flow was confirmed. This UI update still needs deployment and a browser check.
+- A SQL backup download and a GitHub push-webhook deployment flow have been implemented locally but are not yet deployed. The webhook checks its GitHub signature, matches the registered repository and installation, and queues deployment only for an approved active project on its approved branch and hosting path. It records the delivery ID to prevent duplicate deployments, then sends the exact commit and approved resources to the admin workflow. A signed callback records the final deployment result.
+- The new GitHub deployment flow removes the need for workflow YAML and deployment tokens inside developer repositories. It uses one server-side dispatch token limited to the admin deployment repository, plus a short-lived, read-only GitHub App installation token in the central workflow to fetch each private source repository.
+- The matching central workflow template is currently at `C:/Users/SAID_MNUBY/Documents/Codex/mitandao-deploy.yml`; it must be copied to `saidmnuby/mitandao/.github/workflows/deploy.yml`. It expects the admin repository variable `ELIMUTAIFA_LABS_CLIENT_ID`, secrets `ELIMUTAIFA_LABS_APP_PRIVATE_KEY` and `ELIMUTAIFA_LABS_CALLBACK_SECRET`, and variable `ELIMUTAIFA_LABS_CALLBACK_URL`. Existing cPanel secrets remain in the admin repository.
+- Before the webhook flow can run in production, set `GITHUB_APP_WEBHOOK_SECRET`, `GITHUB_DEPLOY_DISPATCH_TOKEN`, and `GITHUB_DEPLOY_CALLBACK_SECRET` in the portal `.env`; set the GitHub App webhook URL to `/github/webhook` with the same webhook secret and subscribe to Push events; and run the new deployments migration. The callback secret must also be set in the admin repository Actions secrets.
 - The owner reported that the active `elimutai_words_game` database can be opened and lists zero tables, but manual table creation and SQL commands fail, and the Create Table page returns HTTP 500. The log identified the HTTP 500 cause: `DatabaseTableController` referenced `Project::STATUS_SUSPENDED` without importing `App\Models\Project`. The missing import is fixed locally. SQL command failures are separately logged locally, but still need a fresh reproduction after deployment to identify their cause.
-- Deployment history integration, safe deletion/synchronization behavior, automated database provisioning, and reusable developer repository onboarding still need implementation and review.
+- The new webhook deployment path needs production configuration and a live end-to-end run before it can be called complete. Existing deployment history status views, safe remote deletion/synchronization, and automated database provisioning still need implementation and review.
 - Review `routes/console.php`: the `platform:make-admin` command currently appears to be defined twice. Remove the duplicate before relying on the command.
 
 ## Suggested local setup
@@ -107,9 +111,9 @@ If MySQL is unavailable, stop and fix the local MySQL startup/connection first. 
 - Let active developers submit repository, branch, and requested domain details through GitHub deployment only; have the administrator assign the fixed hosting folder and approve the request.
 - Let developers request a project database separately; show the requested prefixed name and keep it pending until the admin creates and assigns the database.
 - Add clear rejection and resubmission handling for project requests.
-- Provide a reusable setup for a developer repository that requests deployment when the approved branch changes.
+- Trigger deployments from a signed GitHub App push webhook; developers should not need to create or upload a workflow file or deployment token.
 - Keep the deployment destination and cPanel credentials exclusively in the administrator-controlled workflow and secret store.
-- Use the GitHub App installation ID and short-lived read token for repository verification; later evaluate replacing the admin workflow's per-repository source tokens with narrowly scoped installation tokens.
+- Use short-lived, read-only GitHub App installation tokens in the admin workflow to fetch the registered private source repository; do not store per-developer source PATs in admin workflow secrets.
 - Document token expiry and rotation. A missing, expired, or revoked token should fail clearly and must never print the token.
 
 ### Stage 3 — Reliable deployment records
@@ -168,4 +172,4 @@ Before finishing a development task, update this README in the same change:
 
 ## Current focus
 
-**Deploy the missing `Project` model import fix and retest Create Table.** Push the local change so automatic deployment updates the controller, then open Create Table again. If SQL execution still fails, reproduce it once and read the new logged exception before checking the SQL or MySQL privileges. Keep the production `.env` and database intact. Then deploy and review the stepwise project onboarding screen and continue the separate database isolation checks.
+**Complete and deploy webhook-based project deployment.** Copy the prepared admin workflow into `saidmnuby/mitandao/.github/workflows/deploy.yml`, set the required GitHub Actions variables/secrets and portal `.env` values, enable the GitHub App Push webhook, deploy the portal code, and run the new migration on cPanel. Then push a commit to one approved developer repository and confirm the admin Actions run, callback result, and live destination. Keep cPanel credentials and all deployment tokens out of developer repositories. The local database table 500 fix and SQL backup feature also need deployment and a live check.

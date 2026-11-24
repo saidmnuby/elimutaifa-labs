@@ -42,6 +42,12 @@ return [
         'app_id' => env('GITHUB_APP_ID'),
         'app_slug' => env('GITHUB_APP_SLUG', 'elimutaifa-labs'),
         'app_private_key_path' => env('GITHUB_APP_PRIVATE_KEY_PATH'),
+        'app_webhook_secret' => env('GITHUB_APP_WEBHOOK_SECRET'),
+        'deploy_dispatch_token' => env('GITHUB_DEPLOY_DISPATCH_TOKEN'),
+        'deploy_repository' => env('GITHUB_DEPLOY_REPOSITORY', 'saidmnuby/mitandao'),
+        'deploy_workflow' => env('GITHUB_DEPLOY_WORKFLOW', 'deploy.yml'),
+        'deploy_ref' => env('GITHUB_DEPLOY_REF', 'main'),
+        'deploy_callback_secret' => env('GITHUB_DEPLOY_CALLBACK_SECRET'),
     ],
 
 ];

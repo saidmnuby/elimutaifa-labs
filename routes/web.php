@@ -8,9 +8,13 @@ use App\Http\Controllers\DatabaseTableController;
 use App\Http\Controllers\GitHubVerificationController;
 use App\Http\Controllers\GitHubOAuthController;
 use App\Http\Controllers\GitHubAppInstallationController;
+use App\Http\Controllers\GitHubDeploymentWebhookController;
 use App\Http\Controllers\PlatformAdminController;
 use App\Http\Controllers\ProjectSubmissionController;
 use Illuminate\Support\Facades\Route;
+
+Route::post('/github/webhook', [GitHubDeploymentWebhookController::class, 'webhook'])->name('github.webhook');
+Route::post('/github/deployment-callback', [GitHubDeploymentWebhookController::class, 'callback'])->name('github.deployment-callback');
 
 Route::get('/', fn () => auth()->check()
     ? redirect()->route('dashboard')
