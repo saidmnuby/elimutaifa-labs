@@ -58,11 +58,11 @@ class DatabaseTableController extends Controller
 
         $names = array_map(fn ($column) => strtolower($column['name']), $validated['columns']);
         if (count($names) !== count(array_unique($names))) {
-            return back()->withInput()->withErrors(['columns' => 'Majina ya columns lazima yawe tofauti.']);
+            return back()->withInput()->withErrors(['columns' => 'Column names must be unique.']);
         }
         $primaryCount = collect($validated['columns'])->where('primary', true)->count();
         if ($primaryCount > 1) {
-            return back()->withInput()->withErrors(['columns' => 'Kwa sasa chagua primary key moja tu.']);
+            return back()->withInput()->withErrors(['columns' => 'Choose only one primary key.']);
         }
 
         foreach ($validated['columns'] as $column) {
@@ -104,7 +104,7 @@ class DatabaseTableController extends Controller
         } catch (Throwable $exception) {
             report($exception);
 
-            return back()->withInput()->withErrors(['table_name' => 'Table halikuundwa. Kagua majina na ruhusa za database user.']);
+            return back()->withInput()->withErrors(['table_name' => 'The table was not created. Check the names and database user permissions.']);
         }
 
         ActivityLogger::record($request, 'database.table.created', $database->project_id, ProjectDatabase::class, $database->id, [
@@ -112,7 +112,7 @@ class DatabaseTableController extends Controller
             'column_count' => count($validated['columns']),
         ]);
 
-        return redirect()->route('database.tables.show', [$database, $validated['table_name']])->with('success', 'Table limeundwa.');
+        return redirect()->route('database.tables.show', [$database, $validated['table_name']])->with('success', 'The table was created.');
     }
 
     public function dropTable(Request $request, ProjectDatabase $database, string $table): RedirectResponse
@@ -124,7 +124,7 @@ class DatabaseTableController extends Controller
         Schema::connection($this->connectionName($database))->drop($table);
         ActivityLogger::record($request, 'database.table.deleted', $database->project_id, ProjectDatabase::class, $database->id, ['table' => $table]);
 
-        return redirect()->route('database.show', $database)->with('success', "Table {$table} limefutwa.");
+        return redirect()->route('database.show', $database)->with('success', "Table {$table} was deleted.");
     }
 
     public function createRow(ProjectDatabase $database, string $table): View
@@ -153,7 +153,7 @@ class DatabaseTableController extends Controller
         $values = $this->valuesFromRequest($validated['data'], $columns, false);
 
         if ($values === []) {
-            return back()->withInput()->withErrors(['data' => 'Weka angalau thamani moja ya record.']);
+            return back()->withInput()->withErrors(['data' => 'Enter at least one value for this record.']);
         }
 
         try {
@@ -161,12 +161,12 @@ class DatabaseTableController extends Controller
         } catch (Throwable $exception) {
             report($exception);
 
-            return back()->withInput()->withErrors(['data' => 'Record haikuongezwa. Kagua thamani na required fields za table.']);
+            return back()->withInput()->withErrors(['data' => 'The record was not added. Check the values and required fields.']);
         }
 
         ActivityLogger::record($request, 'database.row.created', $database->project_id, ProjectDatabase::class, $database->id, ['table' => $table]);
 
-        return redirect()->route('database.tables.show', [$database, $table])->with('success', 'Record imeongezwa.');
+        return redirect()->route('database.tables.show', [$database, $table])->with('success', 'The record was added.');
     }
 
     public function editRow(ProjectDatabase $database, string $table, string $rowKey): View
@@ -193,7 +193,7 @@ class DatabaseTableController extends Controller
         $validated = $request->validate(['data' => ['required', 'array']]);
         $values = $this->valuesFromRequest($validated['data'], $columns, true);
         if ($values === []) {
-            return back()->withInput()->withErrors(['data' => 'Hakuna mabadiliko ya kuhifadhi.']);
+            return back()->withInput()->withErrors(['data' => 'There are no changes to save.']);
         }
 
         try {
@@ -201,7 +201,7 @@ class DatabaseTableController extends Controller
         } catch (Throwable $exception) {
             report($exception);
 
-            return back()->withInput()->withErrors(['data' => 'Mabadiliko hayajahifadhiwa. Kagua data na constraints za table.']);
+            return back()->withInput()->withErrors(['data' => 'The changes were not saved. Check the data and table rules.']);
         }
         abort_unless($connection->table($table)->where($primaryKey, $rowKey)->exists(), 404);
 
@@ -209,7 +209,7 @@ class DatabaseTableController extends Controller
             ActivityLogger::record($request, 'database.row.updated', $database->project_id, ProjectDatabase::class, $database->id, ['table' => $table]);
         }
 
-        return redirect()->route('database.tables.show', [$database, $table])->with('success', $updated ? 'Record imesasishwa.' : 'Hakuna mabadiliko mapya kwenye record.');
+        return redirect()->route('database.tables.show', [$database, $table])->with('success', $updated ? 'The record was updated.' : 'The record has no new changes.');
     }
 
     public function deleteRow(Request $request, ProjectDatabase $database, string $table, string $rowKey): RedirectResponse
@@ -223,7 +223,7 @@ class DatabaseTableController extends Controller
         abort_unless($deleted === 1, 404);
         ActivityLogger::record($request, 'database.row.deleted', $database->project_id, ProjectDatabase::class, $database->id, ['table' => $table]);
 
-        return redirect()->route('database.tables.show', [$database, $table])->with('success', 'Record imefutwa.');
+        return redirect()->route('database.tables.show', [$database, $table])->with('success', 'The record was deleted.');
     }
 
     private function authorizeDatabase(ProjectDatabase $database): void
@@ -323,7 +323,7 @@ class DatabaseTableController extends Controller
 
             $value = $input[$field];
             if (is_array($value)) {
-                throw \Illuminate\Validation\ValidationException::withMessages(['data' => 'Values lazima ziwe text au number.']);
+                throw \Illuminate\Validation\ValidationException::withMessages(['data' => 'Values must be text or numbers.']);
             }
             if ($value === '' && ($column['Null'] ?? 'NO') === 'YES') {
                 $value = null;

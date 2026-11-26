@@ -71,7 +71,7 @@ class ProjectSubmissionController extends Controller
         $installationId = (int) $request->session()->get('github_app_installation_id', 0);
         if ($installationId < 1 || ! $github->isConfigured()) {
             throw ValidationException::withMessages([
-                'repository' => 'Unganisha GitHub App na uchague repository kabla ya kutuma ombi.',
+                'repository' => 'Connect the GitHub App and choose a repository before submitting your request.',
             ]);
         }
 
@@ -80,7 +80,7 @@ class ProjectSubmissionController extends Controller
         } catch (\Throwable $exception) {
             report($exception);
             throw ValidationException::withMessages([
-                'repository' => 'GitHub repository access haikuweza kuthibitishwa kwa sasa. Jaribu tena baadaye.',
+                'repository' => 'We could not verify access to this GitHub repository. Please try again later.',
             ]);
         }
 
@@ -90,7 +90,7 @@ class ProjectSubmissionController extends Controller
 
         if (! $verifiedRepository) {
             throw ValidationException::withMessages([
-                'repository' => 'GitHub App haina access ya repo hii. Chagua repo iliyowezeshwa wakati wa kuunganisha App.',
+                'repository' => 'The GitHub App cannot access this repository. Choose a repository you allowed when connecting the App.',
             ]);
         }
 
@@ -151,6 +151,6 @@ class ProjectSubmissionController extends Controller
             'button_url' => route('admin.projects'),
         ]);
 
-        return redirect()->route('dashboard')->with('success', "Ombi la project {$project->name} limetumwa kwa admin approval.");
+        return redirect()->route('dashboard')->with('success', "Your request for {$project->name} was sent for review.");
     }
 }

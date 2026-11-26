@@ -17,12 +17,12 @@ class GitHubAppInstallationController extends Controller
         if (! $developer->github_verified_at || blank($developer->github_username)) {
             return redirect()->route('github.oauth.project')->with(
                 'info',
-                'Kwanza unganisha akaunti yako ya GitHub, kisha uunganishe repository.'
+                'Connect your GitHub account first, then connect a repository.'
             );
         }
 
         if (blank(config('services.github.app_slug')) || ! $github->isConfigured()) {
-            return back()->withErrors(['repository' => 'GitHub App haijasanidiwa. Wasiliana na admin.']);
+            return back()->withErrors(['repository' => 'The GitHub App is not set up. Please contact an administrator.']);
         }
 
         if (! $request->boolean('manage')) {
@@ -45,7 +45,7 @@ class GitHubAppInstallationController extends Controller
 
                         return redirect()->route('projects.create')->with(
                             'success',
-                            'GitHub App tayari imeunganishwa. Repo ulizoruhusu zimepakiwa kwenye orodha.'
+                            'The GitHub App is already connected. Your allowed repositories are now listed.'
                         );
                     }
                 }
@@ -53,7 +53,7 @@ class GitHubAppInstallationController extends Controller
                 report($exception);
 
                 return redirect()->route('projects.create')->withErrors([
-                    'repository' => 'GitHub installation haikuweza kuhakikiwa. Jaribu tena au wasiliana na admin.',
+                    'repository' => 'We could not verify the GitHub installation. Try again or contact an administrator.',
                 ]);
             }
         }
@@ -74,13 +74,13 @@ class GitHubAppInstallationController extends Controller
 
         if ($expectedState === '' || $state === '' || ! hash_equals($expectedState, $state)) {
             return redirect()->route('projects.create')->withErrors([
-                'repository' => 'GitHub App installation haikupita security check. Jaribu tena kutoka kwenye project form.',
+                'repository' => 'The GitHub App did not pass the security check. Try again from the project form.',
             ]);
         }
 
         if ($installationId < 1 || ! $github->isConfigured()) {
             return redirect()->route('projects.create')->withErrors([
-                'repository' => 'GitHub App bado haijasanidiwa kikamilifu na admin.',
+                'repository' => 'The GitHub App is not fully set up yet. Please contact an administrator.',
             ]);
         }
 
@@ -91,7 +91,7 @@ class GitHubAppInstallationController extends Controller
             if (strcasecmp($installation['account_type'], 'User') === 0
                 && strcasecmp($installation['account_login'], (string) $developer->github_username) !== 0) {
                 return redirect()->route('projects.create')->withErrors([
-                    'repository' => 'Umeunganisha GitHub account tofauti na ile iliyothibitishwa kwenye profile yako.',
+                    'repository' => 'You connected a different GitHub account from the one verified on your profile.',
                 ]);
             }
 
@@ -100,13 +100,13 @@ class GitHubAppInstallationController extends Controller
             report($exception);
 
             return redirect()->route('projects.create')->withErrors([
-                'repository' => 'GitHub App haikuweza kuthibitisha installation. Hakikisha App imewekwa kwenye account sahihi na ujaribu tena.',
+                'repository' => 'The GitHub App could not verify the installation. Check that the App is installed on the right account and try again.',
             ]);
         }
 
         if ($repositories === []) {
             return redirect()->route('projects.create')->withErrors([
-                'repository' => 'Hakuna repository iliyochaguliwa wakati wa kuunganisha GitHub App.',
+                'repository' => 'No repository was selected when you connected the GitHub App.',
             ]);
         }
 
@@ -118,7 +118,7 @@ class GitHubAppInstallationController extends Controller
 
         return redirect()->route('projects.create')->with(
             'success',
-            'GitHub App imeunganishwa. Repo zilizochaguliwa sasa zinaweza kuthibitishwa.'
+            'The GitHub App is connected. The selected repositories can now be checked.'
         );
     }
 }

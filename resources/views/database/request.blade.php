@@ -14,7 +14,7 @@
 
 <section class="panel" style="max-width:760px">
     @if ($projects->isEmpty())
-        <div class="notice warning">Hakuna project inayoweza kuombewa database kwa sasa. Kamilisha ombi la GitHub deployment kwanza, au subiri ombi la database lililopo likaguliwe.</div>
+        <div class="notice warning">No projects are ready for a database yet. First request GitHub deployment, or wait for your current database request to be reviewed.</div>
         <a class="button" href="{{ route('modules.show', 'github-deploy') }}">Go to GitHub deployment</a>
     @else
     <form method="post" action="{{ route('database.request.store') }}">

@@ -95,7 +95,7 @@ class GitHubDeploymentWebhookController extends Controller
         } catch (\Illuminate\Database\UniqueConstraintViolationException) {
             $deployment = Deployment::query()->where('github_delivery_id', $deliveryId)->first();
             if (! $deployment
-                || $deployment->failure_summary !== 'GitHub Actions haikukubali kuanzisha deployment.') {
+                || $deployment->failure_summary !== 'GitHub Actions could not start the deployment.') {
                 return response()->json(['received' => true, 'duplicate' => true]);
             }
 
@@ -118,7 +118,7 @@ class GitHubDeploymentWebhookController extends Controller
             report($exception);
             $deployment->forceFill([
                 'status' => 'failed',
-                'failure_summary' => 'GitHub Actions haikukubali kuanzisha deployment.',
+                'failure_summary' => 'GitHub Actions could not start the deployment.',
                 'finished_at' => now(),
             ])->save();
 

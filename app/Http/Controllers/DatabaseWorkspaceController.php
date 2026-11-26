@@ -87,7 +87,7 @@ class DatabaseWorkspaceController extends Controller
             'button_url' => route('admin.database-requests'),
         ]);
 
-        return redirect()->route('modules.show', 'database')->with('success', 'Ombi la database limetumwa kwa admin.');
+        return redirect()->route('modules.show', 'database')->with('success', 'Your database request was sent for review.');
     }
 
     public function show(ProjectDatabase $database): View
@@ -98,12 +98,12 @@ class DatabaseWorkspaceController extends Controller
         $connectionError = null;
         try {
             if (blank($database->encrypted_password)) {
-                $connectionError = 'Admin bado hajaweka password ya database kwenye portal.';
+                $connectionError = 'The database password has not been added to the portal yet.';
             } else {
                 $tables = $this->listTables($this->connection($database));
             }
         } catch (Throwable) {
-            $connectionError = 'Muunganisho haukuweza kusomwa. Admin akague au ahifadhi upya taarifa za database.';
+            $connectionError = 'We could not read the connection. Please ask an administrator to check or update the database details.';
         }
 
         return view('database.show', [
@@ -123,7 +123,7 @@ class DatabaseWorkspaceController extends Controller
 
         if (blank($database->encrypted_password)) {
             return response()->json([
-                'message' => 'Admin bado hajaweka password ya database kwenye portal.',
+                'message' => 'The database password has not been added to the portal yet.',
             ], 409)->header('Cache-Control', 'private, no-store, no-cache, max-age=0');
         }
 
@@ -307,7 +307,7 @@ class DatabaseWorkspaceController extends Controller
             || str_contains($sql, ';')
             || preg_match('/\b(?:CREATE|DROP)\s+DATABASE\b|\bUSE\b|\b(?:GRANT|REVOKE|SHUTDOWN)\b|\bSHOW\s+(?:DATABASES|SCHEMAS)\b|\bINTO\s+(?:OUTFILE|DUMPFILE)\b|\bLOAD\s+DATA\b|\bLOAD_FILE\s*\(|\b(?:mysql|information_schema|performance_schema|sys)\s*\./i', $sql)
             || str_contains($sql, '/*') || preg_match('/--|(^|\s)#/', $sql)) {
-            $queryError = 'Query hairuhusiwi. Tumia command moja ndani ya database hii pekee.';
+            $queryError = 'This query is not allowed. Run one command in this database only.';
         } else {
             try {
                 $connection = $this->connection($database);
@@ -339,7 +339,7 @@ class DatabaseWorkspaceController extends Controller
         try {
             $tables = $this->listTables($this->connection($database));
         } catch (Throwable) {
-            $connectionError = 'Muunganisho wa database umeshindikana. Admin akague taarifa za connection.';
+            $connectionError = 'The database connection failed. Please ask an administrator to check the connection details.';
         }
 
         return view('database.show', [

@@ -12,7 +12,7 @@ Artisan::command('platform:make-admin {email}', function (string $email) {
     $user = User::where('email', mb_strtolower($email))->first();
 
     if (! $user) {
-        $this->error('Akaunti haijapatikana. Jisajili kwanza.');
+        $this->error('Account not found. Please register first.');
 
         return 1;
     }
@@ -31,7 +31,7 @@ Artisan::command('platform:make-admin {email}', function (string $email) {
     $user = User::where('email', mb_strtolower($email))->first();
 
     if (! $user) {
-        $this->error('Akaunti haijapatikana. Jisajili kwanza, kisha tumia command hii.');
+        $this->error('Account not found. Please register first, then run this command.');
 
         return 1;
     }

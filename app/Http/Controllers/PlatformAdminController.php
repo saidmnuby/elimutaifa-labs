@@ -45,7 +45,7 @@ class PlatformAdminController extends Controller
 
         $oldStatus = $user->status;
         if ($validated['status'] === User::STATUS_REJECTED && $oldStatus !== User::STATUS_PENDING) {
-            return back()->withErrors(['developer' => 'Akaunti iliyokwisha kuidhinishwa haiwezi kuwekwa rejected; isimamishe badala yake.']);
+            return back()->withErrors(['developer' => 'An approved account cannot be rejected. Suspend it instead.']);
         }
         $user->forceFill(['status' => $validated['status']])->save();
 
@@ -58,7 +58,7 @@ class PlatformAdminController extends Controller
             'ip_address' => $request->ip(),
         ]);
 
-        return back()->with('success', "Hali ya akaunti ya {$user->email} imebadilishwa.");
+        return back()->with('success', "The account status for {$user->email} was updated.");
     }
 
     public function projects(): View
@@ -83,7 +83,7 @@ class PlatformAdminController extends Controller
     public function rejectProject(Request $request, Project $project): RedirectResponse
     {
         if ($project->status !== Project::STATUS_PENDING) {
-            return back()->withErrors(['project' => 'Ni maombi pending pekee yanaweza kukataliwa.']);
+            return back()->withErrors(['project' => 'Only pending requests can be rejected.']);
         }
 
         $project->forceFill(['status' => Project::STATUS_REJECTED])->save();
@@ -102,7 +102,7 @@ class PlatformAdminController extends Controller
             'ip_address' => $request->ip(),
         ]);
 
-        return back()->with('success', "Ombi la deployment la {$project->name} limekataliwa.");
+        return back()->with('success', "The deployment request for {$project->name} was rejected.");
     }
 
     public function databaseRequests(): View
@@ -123,7 +123,7 @@ class PlatformAdminController extends Controller
         $databaseRequest->load('project');
         $project = $databaseRequest->project;
         if ($databaseRequest->status !== ProjectDatabaseRequest::STATUS_PENDING) {
-            return back()->withErrors(['database_request' => 'Ombi hili halipo tena kwenye foleni.']);
+            return back()->withErrors(['database_request' => 'This request is no longer in the queue.']);
         }
 
         $module = ServiceModule::where('key', 'database')->firstOrFail();
@@ -140,7 +140,7 @@ class PlatformAdminController extends Controller
         foreach (['database_name', 'database_user'] as $field) {
             if (! str_starts_with($validated[$field], $prefix) || strlen($validated[$field]) <= strlen($prefix)) {
                 throw \Illuminate\Validation\ValidationException::withMessages([
-                    $field => "Jina lazima lianze na prefix ya cPanel: {$prefix}",
+                    $field => "The name must start with this cPanel prefix: {$prefix}",
                 ]);
             }
         }
@@ -149,7 +149,7 @@ class PlatformAdminController extends Controller
             $lockedRequest = ProjectDatabaseRequest::whereKey($databaseRequest->id)->lockForUpdate()->firstOrFail();
             if ($lockedRequest->status !== ProjectDatabaseRequest::STATUS_PENDING) {
                 throw \Illuminate\Validation\ValidationException::withMessages([
-                    'database_request' => 'Ombi hili tayari limeshughulikiwa.',
+                    'database_request' => 'This request has already been handled.',
                 ]);
             }
 
@@ -192,13 +192,13 @@ class PlatformAdminController extends Controller
             ]);
         });
 
-        return redirect()->route('admin.database-requests')->with('success', "Database ya project {$project->name} imeidhinishwa na kuwashwa.");
+        return redirect()->route('admin.database-requests')->with('success', "The database for {$project->name} was approved and enabled.");
     }
 
     public function rejectDatabaseRequest(Request $request, ProjectDatabaseRequest $databaseRequest): RedirectResponse
     {
         if ($databaseRequest->status !== ProjectDatabaseRequest::STATUS_PENDING) {
-            return back()->withErrors(['database_request' => 'Ombi hili halipo tena kwenye foleni.']);
+            return back()->withErrors(['database_request' => 'This request is no longer in the queue.']);
         }
 
         DB::transaction(function () use ($request, $databaseRequest) {
@@ -225,7 +225,7 @@ class PlatformAdminController extends Controller
             ]);
         });
 
-        return back()->with('success', 'Ombi la database limekataliwa.');
+        return back()->with('success', 'The database request was rejected.');
     }
 
     public function editProject(Project $project): View
@@ -280,7 +280,7 @@ class PlatformAdminController extends Controller
             && blank($validated['database_password'] ?? null)
             && (! $database || blank($database->encrypted_password))) {
             throw \Illuminate\Validation\ValidationException::withMessages([
-                'database_password' => 'Weka password ya database kabla ya kuwasha access.',
+                'database_password' => 'Enter the database password before enabling access.',
             ]);
         }
 
@@ -289,7 +289,7 @@ class PlatformAdminController extends Controller
             : null;
         if ($documentRoot !== null && (! str_starts_with($documentRoot, '/home/elimutai/') || str_contains($documentRoot, '..'))) {
             throw \Illuminate\Validation\ValidationException::withMessages([
-                'document_root' => 'Path lazima iwe ndani ya /home/elimutai/ na isiwe na ..',
+                'document_root' => 'The path must be inside /home/elimutai/ and cannot contain ..',
             ]);
         }
 
@@ -372,13 +372,13 @@ class PlatformAdminController extends Controller
             ]);
         });
 
-        return redirect()->route('admin.projects')->with('success', "Resources za {$project->name} zimesasishwa.");
+        return redirect()->route('admin.projects')->with('success', "Resources for {$project->name} were updated.");
     }
 
     public function approveProject(Request $request, Project $project): RedirectResponse
     {
         if ($project->status !== Project::STATUS_PENDING) {
-            return back()->withErrors(['project' => 'Project hii haipo tena kwenye foleni ya approval.']);
+            return back()->withErrors(['project' => 'This project is no longer waiting for approval.']);
         }
 
         $validated = $request->validate([
@@ -388,7 +388,7 @@ class PlatformAdminController extends Controller
         $documentRoot = rtrim(str_replace('\\', '/', trim($validated['document_root'])), '/');
         if (! str_starts_with($documentRoot, '/home/elimutai/') || str_contains($documentRoot, '..')) {
             throw ValidationException::withMessages([
-                'document_root' => 'Path lazima iwe ndani ya /home/elimutai/ na isiwe na ..',
+                'document_root' => 'The path must be inside /home/elimutai/ and cannot contain ..',
             ]);
         }
 
@@ -422,6 +422,6 @@ class PlatformAdminController extends Controller
             ]);
         });
 
-        return back()->with('success', "Project {$project->name} imeidhinishwa.");
+        return back()->with('success', "Project {$project->name} was approved.");
     }
 }
