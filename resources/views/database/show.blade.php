@@ -33,6 +33,11 @@
 @else
     <section class="panel" style="margin-bottom:20px">
         <div class="section-head"><div><h2>Database tables</h2><span class="muted">{{ count($tables) }} tables</span></div><div style="display:flex;gap:8px;flex-wrap:wrap"><a class="button secondary" href="{{ route('database.export', $databaseRecord) }}">Download SQL backup</a><a class="button" href="{{ route('database.tables.create', $databaseRecord) }}">Create table</a></div></div>
+        <form method="post" action="{{ route('database.import', $databaseRecord) }}" enctype="multipart/form-data" style="display:flex;align-items:end;gap:12px;flex-wrap:wrap;margin:0 0 18px;padding:15px;border:1px solid var(--line);border-radius:11px;background:#fafcff">
+            @csrf
+            <div class="field" style="flex:1 1 260px;margin:0"><label for="sql_dump">Import SQL dump</label><input id="sql_dump" name="sql_dump" type="file" accept=".sql,application/sql" required><span class="muted" style="display:block;font-size:12px;margin-top:5px">SQL files up to 20 MB. Import runs on this project’s database and may change its data.</span>@error('sql_dump')<div class="form-error">{{ $message }}</div>@enderror</div>
+            <button class="button secondary" type="submit" onclick="return confirm('Import this SQL file? It may replace or delete existing data.')">Import dump</button>
+        </form>
         @if (empty($tables))
             <div class="empty-state"><strong>No tables yet</strong>Use the SQL workspace below to create the first table.</div>
         @else

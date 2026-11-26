@@ -218,6 +218,54 @@ class DatabaseWorkspaceController extends Controller
         }, $filename, ['Content-Type' => 'application/sql; charset=UTF-8']);
     }
 
+    public function import(Request $request, ProjectDatabase $database): RedirectResponse
+    {
+        $this->authorizeDatabase($database);
+        abort_unless(extension_loaded('pdo_mysql') && defined('PDO::MYSQL_ATTR_MULTI_STATEMENTS'), 503, 'SQL import is unavailable on this server.');
+
+        $request->validate([
+            'sql_dump' => ['required', 'file', 'max:20480'],
+        ]);
+        $file = $request->file('sql_dump');
+        if (strtolower($file->getClientOriginalExtension()) !== 'sql') {
+            return back()->withErrors(['sql_dump' => 'Choose a .sql dump file.']);
+        }
+
+        $sql = file_get_contents($file->getRealPath());
+        if (! is_string($sql) || trim($sql) === '') {
+            return back()->withErrors(['sql_dump' => 'The SQL dump is empty or could not be read.']);
+        }
+        if (preg_match('/(?:^|;)\s*(?:USE\s+|CREATE\s+(?:DATABASE|SCHEMA)\b|DROP\s+(?:DATABASE|SCHEMA)\b|GRANT\b|REVOKE\b|LOAD\s+DATA\b)/im', $sql)
+            || preg_match('/\b(?:INTO\s+(?:OUTFILE|DUMPFILE)|LOAD_FILE\s*\()/i', $sql)) {
+            return back()->withErrors(['sql_dump' => 'This dump contains server-level commands. Remove database selection, privilege, or file access commands and try again.']);
+        }
+
+        try {
+            $connection = $this->connection($database);
+            $config = $connection->getConfig();
+            $pdo = new \PDO(
+                'mysql:host='.$config['host'].';port='.$config['port'].';dbname='.$config['database'].';charset=utf8mb4',
+                $config['username'],
+                $config['password'],
+                [
+                    \PDO::ATTR_ERRMODE => \PDO::ERRMODE_EXCEPTION,
+                    \PDO::MYSQL_ATTR_MULTI_STATEMENTS => true,
+                ],
+            );
+            $pdo->exec($sql);
+
+            ActivityLogger::record($request, 'database.imported', $database->project_id, ProjectDatabase::class, $database->id, [
+                'filename' => basename($file->getClientOriginalName()),
+                'bytes' => $file->getSize(),
+            ]);
+        } catch (Throwable $exception) {
+            report($exception);
+            return back()->withErrors(['sql_dump' => 'Import failed. The dump may contain unsupported SQL or exceed this database user’s permissions. Some earlier statements may already have been applied.']);
+        }
+
+        return redirect()->route('database.show', $database)->with('success', 'SQL dump imported successfully.');
+    }
+
     public function browseTable(ProjectDatabase $database, string $table): View
     {
         $this->authorizeDatabase($database);

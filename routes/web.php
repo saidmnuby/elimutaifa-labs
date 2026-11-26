@@ -86,6 +86,8 @@ Route::middleware('auth')->group(function () {
     Route::post('/database-accounts/{database}/credentials', [DatabaseWorkspaceController::class, 'credentials'])
         ->middleware('throttle:database-credentials')->name('database.credentials');
     Route::get('/database-accounts/{database}/export', [DatabaseWorkspaceController::class, 'export'])->name('database.export');
+    Route::post('/database-accounts/{database}/import', [DatabaseWorkspaceController::class, 'import'])
+        ->middleware('throttle:database-import')->name('database.import');
     Route::get('/database-accounts/{database}/tables/create', [DatabaseTableController::class, 'createTable'])->name('database.tables.create');
     Route::post('/database-accounts/{database}/tables', [DatabaseTableController::class, 'storeTable'])->name('database.tables.store');
     Route::get('/database-accounts/{database}/tables/{table}', [DatabaseTableController::class, 'show'])->name('database.tables.show');

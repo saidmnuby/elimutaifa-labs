@@ -65,6 +65,7 @@ class ActivityLogController extends Controller
             'database.rejected' => 'Database request rejected',
             'database.credentials.viewed' => 'Viewed database connection details',
             'database.exported' => 'Exported a database backup',
+            'database.imported' => 'Imported a database backup',
             'database.query_executed' => 'Ran a database command',
             'database.table.created' => 'Created a database table',
             'database.table.deleted' => 'Deleted a database table',
