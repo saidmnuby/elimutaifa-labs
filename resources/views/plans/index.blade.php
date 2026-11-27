@@ -47,7 +47,7 @@
             <div class="plan-divider"></div>
             <ul class="plan-features">
                 <li><span class="plan-check">✓</span><span>Up to <strong>5 projects</strong>, each connected to one GitHub repository and one subdomain.</span></li>
-                <li><span class="plan-check">✓</span><span>Up to <strong>50 MB of deployable files per project</strong>, including generated build files.</span></li>
+                <li><span class="plan-check">✓</span><span><strong>Limited storage</strong> for deployable project files.</span></li>
                 <li><span class="plan-check">✓</span><span>Up to <strong>5 databases per project/subdomain</strong>.</span></li>
                 <li><span class="plan-check">✓</span><span>GitHub push-to-deploy after project approval.</span></li>
                 <li><span class="plan-check">✓</span><span>Database workspace with SQL tools, import, and export.</span></li>
