@@ -24,9 +24,10 @@
             @csrf
             <div class="field">
                 <label for="billing_cycle">Billing period</label>
+                @if ($pricing['offer_active'])<p class="badge active" style="display:inline-flex;margin:0 0 8px">{{ $pricing['offer_title'] }}</p>@endif
                 <select id="billing_cycle" name="billing_cycle" required>
-                    <option value="monthly" @selected(old('billing_cycle', 'monthly') === 'monthly')>Monthly · TZS {{ number_format($monthlyPrice) }}</option>
-                    <option value="yearly" @selected(old('billing_cycle') === 'yearly')>Yearly · TZS {{ number_format($yearlyPrice) }}</option>
+                    <option value="monthly" @selected(old('billing_cycle', 'monthly') === 'monthly')>Monthly · TZS {{ number_format($monthlyPrice) }}{{ $monthlyPrice < $pricing['base_monthly'] ? ' (was TZS '.number_format($pricing['base_monthly']).')' : '' }}</option>
+                    <option value="yearly" @selected(old('billing_cycle') === 'yearly')>Yearly · TZS {{ number_format($yearlyPrice) }}{{ $yearlyPrice < $pricing['base_yearly'] ? ' (was TZS '.number_format($pricing['base_yearly']).')' : '' }}</option>
                 </select>
             </div>
 

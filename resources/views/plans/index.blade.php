@@ -68,9 +68,10 @@
             </div>
             <div class="plan-price">Plus <small>monthly or yearly</small></div>
             <div class="plan-price-options">
-                <span><strong>Monthly</strong><strong>TZS {{ number_format(config('platform.plus_pricing.monthly')) }} / month</strong></span>
-                <span><strong>Yearly</strong><strong>TZS {{ number_format(config('platform.plus_pricing.yearly')) }} / year</strong></span>
+                <span><strong>Monthly</strong><strong>@if ($pricing['monthly'] < $pricing['base_monthly'])<s class="muted">TZS {{ number_format($pricing['base_monthly']) }}</s> @endif TZS {{ number_format($pricing['monthly']) }} / month</strong></span>
+                <span><strong>Yearly</strong><strong>@if ($pricing['yearly'] < $pricing['base_yearly'])<s class="muted">TZS {{ number_format($pricing['base_yearly']) }}</s> @endif TZS {{ number_format($pricing['yearly']) }} / year</strong></span>
             </div>
+            @if ($pricing['offer_active'])<p class="badge active" style="display:inline-flex;margin:0 0 12px">{{ $pricing['offer_title'] }}</p>@endif
             <p class="plan-summary">Host more projects and databases without the Free plan's count and package-size caps.</p>
             <div class="plan-divider"></div>
             <ul class="plan-features">

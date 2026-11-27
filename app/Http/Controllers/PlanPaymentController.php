@@ -8,6 +8,7 @@ use App\Models\PaymentReceipt;
 use App\Models\User;
 use App\Support\SystemMailer;
 use App\Support\PlanPaymentApprovalService;
+use App\Support\PaymentConfiguration;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -31,12 +32,14 @@ class PlanPaymentController extends Controller
             return redirect()->route('plans.payment.show', $pendingPayment);
         }
 
+        $pricing = PaymentConfiguration::pricing();
         return view('plans.checkout', [
             'user' => $user,
-            'monthlyPrice' => config('platform.plus_pricing.monthly'),
-            'yearlyPrice' => config('platform.plus_pricing.yearly'),
-            'paymentAccounts' => config('platform.payment_accounts'),
-            'accountName' => config('platform.payment_account_name'),
+            'pricing' => $pricing,
+            'monthlyPrice' => $pricing['monthly'],
+            'yearlyPrice' => $pricing['yearly'],
+            'paymentAccounts' => PaymentConfiguration::accounts(activeOnly: true),
+            'accountName' => PaymentConfiguration::accountName(),
             'supportPhone' => config('platform.payment_support_phone'),
             'supportEmails' => config('platform.payment_support_emails'),
         ]);
@@ -50,7 +53,7 @@ class PlanPaymentController extends Controller
 
         $validated = $request->validate([
             'billing_cycle' => ['required', Rule::in(['monthly', 'yearly'])],
-            'payment_method' => ['required', Rule::in(array_keys(config('platform.payment_accounts', [])))],
+            'payment_method' => ['required', Rule::in(array_keys(PaymentConfiguration::accounts(activeOnly: true)))],
             'transaction_reference' => [
                 'required', 'string', 'max:100',
                 Rule::unique('plan_payments', 'provider_transaction_id'),
@@ -64,13 +67,13 @@ class PlanPaymentController extends Controller
             ]);
         }
 
-        $amount = (int) config('platform.plus_pricing.'.$validated['billing_cycle']);
+        $amount = PaymentConfiguration::priceFor($validated['billing_cycle']);
         if ($amount < 1) {
             return back()->withInput()->withErrors(['payment' => 'The selected Plus price is not configured.']);
         }
 
         $transactionReference = trim($validated['transaction_reference']);
-        $account = config('platform.payment_accounts.'.$validated['payment_method']);
+        $account = PaymentConfiguration::accounts()[$validated['payment_method']];
         $payment = PlanPayment::create([
             'user_id' => $user->id,
             'order_id' => 'TCC'.$user->id.strtoupper(bin2hex(random_bytes(8))),
@@ -81,7 +84,14 @@ class PlanPaymentController extends Controller
             'status' => PlanPayment::STATUS_PENDING,
             'provider_transaction_id' => $transactionReference,
             'provider_channel' => $account['label'],
-            'provider_payload' => ['verification_type' => 'manual'],
+            'provider_payload' => [
+                'verification_type' => 'manual',
+                'payment_account_name' => PaymentConfiguration::accountName(),
+                'payment_account_label' => $account['label'],
+                'payment_account_number' => $account['number'],
+                'regular_price' => PaymentConfiguration::pricing()['base_'.$validated['billing_cycle']],
+                'offer_title' => PaymentConfiguration::pricing()['offer_active'] ? PaymentConfiguration::pricing()['offer_title'] : null,
+            ],
         ]);
 
         $receipt = PaymentReceipt::query()
@@ -149,8 +159,11 @@ class PlanPaymentController extends Controller
 
         return view('plans.payment-result', [
             'payment' => $payment,
-            'accountName' => config('platform.payment_account_name'),
-            'paymentAccount' => config('platform.payment_accounts.'.$payment->payment_method),
+            'accountName' => $payment->provider_payload['payment_account_name'] ?? PaymentConfiguration::accountName(),
+            'paymentAccount' => [
+                'label' => $payment->provider_payload['payment_account_label'] ?? config('platform.payment_accounts.'.$payment->payment_method.'.label'),
+                'number' => $payment->provider_payload['payment_account_number'] ?? config('platform.payment_accounts.'.$payment->payment_method.'.number'),
+            ],
             'supportPhone' => config('platform.payment_support_phone'),
             'supportEmails' => config('platform.payment_support_emails'),
         ]);

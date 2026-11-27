@@ -117,6 +117,7 @@ Route::middleware('auth')->group(function () {
     Route::prefix('admin')->name('admin.')->middleware('can:manage-platform')->group(function () {
         Route::get('/developers', [PlatformAdminController::class, 'developers'])->name('developers');
         Route::get('/payment-requests', [AdminPlanPaymentController::class, 'index'])->name('payment-requests');
+        Route::put('/payment-requests/settings', [AdminPlanPaymentController::class, 'updatePaymentSettings'])->name('payment-requests.settings.update');
         Route::post('/payment-requests/receipts', [AdminPlanPaymentController::class, 'storeReceipt'])->name('payment-requests.receipts.store');
         Route::delete('/payment-requests/receipts/{receipt}', [AdminPlanPaymentController::class, 'deleteReceipt'])->name('payment-requests.receipts.destroy');
         Route::post('/payment-requests/{payment}/approve', [AdminPlanPaymentController::class, 'approve'])->name('payment-requests.approve');

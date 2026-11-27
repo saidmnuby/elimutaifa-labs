@@ -22,6 +22,7 @@
         <div class="notice" style="margin:18px 0">
             <strong>Amount:</strong> TZS {{ number_format($payment->amount) }}<br>
             <strong>Period:</strong> {{ ucfirst($payment->billing_cycle) }}<br>
+            <strong>Account name:</strong> {{ $accountName }}<br>
             <strong>Paid to:</strong> {{ $paymentAccount['label'] ?? $payment->provider_channel }} · {{ $paymentAccount['number'] ?? '' }}<br>
             <strong>Transaction reference:</strong> {{ $payment->provider_transaction_id }}
         </div>
