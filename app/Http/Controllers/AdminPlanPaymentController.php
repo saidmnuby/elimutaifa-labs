@@ -7,6 +7,7 @@ use App\Models\PaymentReceipt;
 use App\Models\PlanPayment;
 use App\Models\User;
 use App\Support\PlanPaymentApprovalService;
+use App\Support\PaymentConfiguration;
 use App\Support\SystemMailer;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -23,8 +24,96 @@ class AdminPlanPaymentController extends Controller
             'payments' => PlanPayment::with('user')->where('status', PlanPayment::STATUS_PENDING)->latest()->paginate(20, ['*'], 'pending_page'),
             'developers' => User::where('role', User::ROLE_DEVELOPER)->latest()->paginate(20, ['*'], 'developers_page'),
             'receipts' => PaymentReceipt::with('recorder')->whereNull('plan_payment_id')->latest('recorded_at')->limit(20)->get(),
-            'paymentAccounts' => config('platform.payment_accounts'),
+            'paymentAccounts' => PaymentConfiguration::accounts(),
+            'paymentSettings' => PaymentConfiguration::settings(),
+            'pricing' => PaymentConfiguration::pricing(),
         ]);
+    }
+
+    public function updatePaymentSettings(Request $request): RedirectResponse
+    {
+        $accountKeys = array_keys(config('platform.payment_accounts', []));
+        $rules = [
+            'account_name' => ['required', 'string', 'max:120'],
+            'pricing.monthly' => ['required', 'integer', 'min:1', 'max:1000000000'],
+            'pricing.yearly' => ['required', 'integer', 'min:1', 'max:1000000000'],
+            'offer.enabled' => ['sometimes', 'boolean'],
+            'offer.title' => ['nullable', 'string', 'max:100'],
+            'offer.monthly' => ['nullable', 'integer', 'min:1', 'max:1000000000'],
+            'offer.yearly' => ['nullable', 'integer', 'min:1', 'max:1000000000'],
+            'offer.starts_at' => ['nullable', 'date'],
+            'offer.ends_at' => ['nullable', 'date'],
+        ];
+        foreach ($accountKeys as $key) {
+            $rules["accounts.$key.label"] = ['required', 'string', 'max:60'];
+            $rules["accounts.$key.number"] = ['required', 'string', 'max:40'];
+            $rules["accounts.$key.enabled"] = ['sometimes', 'boolean'];
+        }
+
+        $validated = $request->validate($rules);
+        $settings = [
+            'account_name' => trim($validated['account_name']),
+            'pricing' => [
+                'monthly' => (int) $validated['pricing']['monthly'],
+                'yearly' => (int) $validated['pricing']['yearly'],
+            ],
+            'offer' => [
+                'enabled' => $request->boolean('offer.enabled'),
+                'title' => trim((string) ($validated['offer']['title'] ?? '')),
+                'monthly' => isset($validated['offer']['monthly']) ? (int) $validated['offer']['monthly'] : null,
+                'yearly' => isset($validated['offer']['yearly']) ? (int) $validated['offer']['yearly'] : null,
+                'starts_at' => $validated['offer']['starts_at'] ?? null,
+                'ends_at' => $validated['offer']['ends_at'] ?? null,
+            ],
+            'accounts' => [],
+        ];
+
+        if ($settings['offer']['enabled'] && $settings['offer']['monthly'] === null && $settings['offer']['yearly'] === null) {
+            return back()->withInput()->withErrors(['offer.monthly' => 'Enter at least one offer price before enabling the offer.']);
+        }
+        if ($settings['offer']['enabled']) {
+            foreach (['monthly', 'yearly'] as $cycle) {
+                $offerPrice = $settings['offer'][$cycle];
+                if ($offerPrice !== null && $offerPrice >= $settings['pricing'][$cycle]) {
+                    return back()->withInput()->withErrors(["offer.$cycle" => 'The offer price must be lower than the regular price.']);
+                }
+            }
+        }
+        if ($settings['offer']['enabled'] && $settings['offer']['starts_at'] && $settings['offer']['ends_at']
+            && strtotime($settings['offer']['starts_at']) > strtotime($settings['offer']['ends_at'])) {
+            return back()->withInput()->withErrors(['offer.ends_at' => 'The offer end must be after its start.']);
+        }
+
+        foreach ($accountKeys as $key) {
+            $settings['accounts'][$key] = [
+                'label' => trim($validated['accounts'][$key]['label']),
+                'number' => trim($validated['accounts'][$key]['number']),
+                'type' => config("platform.payment_accounts.$key.type"),
+                'enabled' => $request->boolean("accounts.$key.enabled"),
+            ];
+        }
+        if (! collect($settings['accounts'])->contains(fn (array $account) => $account['enabled'])) {
+            return back()->withInput()->withErrors(['accounts' => 'Keep at least one payment account available.']);
+        }
+
+        DB::transaction(function () use ($settings, $request) {
+            PaymentConfiguration::save($settings);
+            AuditEvent::create([
+                'actor_id' => $request->user()->id,
+                'action' => 'payment.settings_updated',
+                'subject_type' => 'payment_configuration',
+                'subject_id' => 'current',
+                'details' => [
+                    'monthly_price' => $settings['pricing']['monthly'],
+                    'yearly_price' => $settings['pricing']['yearly'],
+                    'offer_enabled' => $settings['offer']['enabled'],
+                    'enabled_accounts' => array_keys(array_filter($settings['accounts'], fn (array $account) => $account['enabled'])),
+                ],
+                'ip_address' => $request->ip(),
+            ]);
+        });
+
+        return redirect()->route('admin.payment-requests')->with('success', 'Prices, offer and payment accounts were updated. New payment requests will use these settings.');
     }
 
     public function storeReceipt(Request $request, PlanPaymentApprovalService $approval, SystemMailer $mailer): RedirectResponse
