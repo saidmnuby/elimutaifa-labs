@@ -52,6 +52,10 @@
         .live-check{display:block;margin-top:6px;font-size:12px}.live-check[hidden]{display:none}.live-check[data-state="checking"]{color:var(--muted)}.live-check[data-state="found"]{color:#067647;font-weight:700}.live-check[data-state="not-found"]{color:#b42318;font-weight:700}.live-check[data-state="unknown"]{color:#93370d}
         @media(max-width:800px){.workspace-shell{grid-template-columns:1fr;gap:16px;margin-top:20px}.developer-sidebar,.admin-sidebar{position:static;display:flex;align-items:center;gap:6px;overflow-x:auto;padding:9px}.sidebar-heading{display:none}.sidebar-link{white-space:nowrap;font-size:13px}.system-settings-card{flex:0 0 auto;margin-top:0;padding:0;border:0;background:transparent}.workspace-shell main{margin:0 0 30px}}
     </style>
+    <style>
+        .public-page{max-width:930px;margin:0 auto}.public-hero{padding:30px;border:1px solid var(--line);border-radius:16px;background:linear-gradient(135deg,#fff,#f0f8ff)}.public-hero h1{font-size:clamp(28px,4vw,40px)}.public-hero p{max-width:780px;margin-top:12px;color:var(--muted);line-height:1.7}.public-section{margin-top:20px}.public-section h2{margin-bottom:10px}.public-section p,.public-section li{color:#475467;line-height:1.7}.public-section ul{padding-left:20px}.public-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;margin-top:15px}.public-card{padding:20px;border:1px solid var(--line);border-radius:13px;background:#fff}.public-card h2,.public-card h3{margin-bottom:8px}.public-card p{color:var(--muted);line-height:1.65}.public-callout{padding:16px;border:1px solid #b2ddff;border-radius:11px;background:#eff8ff;color:#1849a9;line-height:1.65}.public-steps{display:grid;gap:12px;margin-top:16px}.public-step{display:grid;grid-template-columns:38px 1fr;gap:13px;padding:17px;border:1px solid var(--line);border-radius:12px;background:#fff}.public-step-number{display:grid;place-items:center;width:34px;height:34px;border-radius:50%;background:#eaf5ff;color:#0868d7;font-weight:800}.public-step h2{font-size:16px;margin-bottom:4px}.public-step p{color:var(--muted);line-height:1.6}.privacy-page .public-section{padding:18px;border:1px solid var(--line);border-radius:12px;background:#fff}.contact-method{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:14px 0;border-bottom:1px solid var(--line)}.contact-method:last-child{border-bottom:0}.contact-method strong{display:block}.contact-method span{display:block;color:var(--muted);font-size:13px}.contact-actions{display:flex;flex-wrap:wrap;gap:10px;margin-top:17px}
+        @media(max-width:700px){.public-hero{padding:23px 20px}.public-grid{grid-template-columns:1fr}.public-step{grid-template-columns:32px 1fr;gap:10px;padding:14px}.contact-method{align-items:flex-start;flex-direction:column}}
+    </style>
 </head>
 <body>
     <header class="topbar">
@@ -101,6 +105,14 @@
     @auth
         </div>
     @endauth
-    <footer class="footer">TechwareTz Control Center (TCC) · Project hosting services</footer>
+    <footer class="footer">
+        <div>TechwareTz Control Center (TCC) · Project hosting services</div>
+        <nav aria-label="Footer navigation" style="display:flex;justify-content:center;flex-wrap:wrap;gap:10px 18px;margin-top:10px">
+            <a href="{{ route('about') }}">About us</a>
+            <a href="{{ route('how-it-works') }}">How it works</a>
+            <a href="{{ route('privacy') }}">Privacy</a>
+            <a href="{{ route('contact') }}">Contact</a>
+        </nav>
+    </footer>
 </body>
 </html>

@@ -25,6 +25,11 @@ Route::get('/', fn () => auth()->check()
     ? redirect()->route('dashboard')
     : response()->view('welcome'));
 
+Route::view('/about', 'public.about')->name('about');
+Route::view('/how-it-works', 'public.how-it-works')->name('how-it-works');
+Route::view('/privacy', 'public.privacy')->name('privacy');
+Route::view('/contact', 'public.contact')->name('contact');
+
 Route::get('/sitemap.xml', fn () => response()->view('sitemap')
     ->header('Content-Type', 'application/xml; charset=UTF-8'))
     ->name('sitemap');

@@ -5,4 +5,11 @@
         <changefreq>monthly</changefreq>
         <priority>1.0</priority>
     </url>
+    @foreach (['about', 'how-it-works', 'privacy', 'contact'] as $page)
+        <url>
+            <loc>{{ route($page) }}</loc>
+            <changefreq>yearly</changefreq>
+            <priority>0.5</priority>
+        </url>
+    @endforeach
 </urlset>
