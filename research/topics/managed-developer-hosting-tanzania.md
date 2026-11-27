@@ -149,3 +149,11 @@ Risks include commodity price pressure, one shared cPanel account becoming a sec
 - How many of the five Free repositories can be actively hosted, and what storage/backup limits apply?
 - Would users pay for managed onboarding/support, and what support response time can the business actually sustain?
 - What capacity, backup, and incident procedures are required before onboarding more than a few pilot projects?
+
+## Capacity hypothesis: 10 GB shared hosting plan
+
+Until actual usage is measured, reserve 2 GB for TCC, logs, temporary deployment files, and operational headroom. Treat the remaining 8 GB as a hard shared pool, not as space that can all be sold. A cautious starting quota to discuss is Free: 250 MB of website files per developer; Plus: 1 GB of website files per developer, with unlimited repository registrations but no promise of unlimited live deployments. These quotas are provisional and require checking current portal size, backups, and inode limits.
+
+Database storage needs separate monitoring. cPanel documentation says it includes MySQL database size in displayed account usage, but account disk quotas do not necessarily stop MySQL growth from exceeding the quota. Do not promise strict database caps based only on the cPanel account quota. Pilot database limits, SQL import size, growth alerts, and provider limits before selling the tiers.
+
+**Msingi:** 10 GB is the hosting-plan amount stated by the owner; 2 GB reserved and proposed per-developer caps are conservative planning assumptions, not measured consumption or implemented enforcement. cPanel limit behavior: [Disk Usage documentation](https://docs.cpanel.net/cpanel/files/disk-usage/), [Quota Modification documentation](https://docs.cpanel.net/whm/account-functions/quota-modification/).

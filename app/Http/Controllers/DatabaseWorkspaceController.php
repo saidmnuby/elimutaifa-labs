@@ -27,6 +27,10 @@ class DatabaseWorkspaceController extends Controller
 
         $projects = $request->user()->projects()
             ->where('projects.status', '!=', Project::STATUS_SUSPENDED)
+            ->withCount([
+                'databases as plan_database_count' => fn ($query) => $query->whereIn('status', ['pending', 'active']),
+                'databaseRequests as plan_pending_request_count' => fn ($query) => $query->where('status', ProjectDatabaseRequest::STATUS_PENDING),
+            ])
             ->orderBy('name')
             ->get();
         $selectedProjectId = $projects->contains('id', (int) $request->query('project_id'))
@@ -54,25 +58,44 @@ class DatabaseWorkspaceController extends Controller
         $this->authorizeProject($project);
 
         $module = ServiceModule::where('key', 'database')->where('is_enabled', true)->firstOrFail();
-        $databaseRequest = ProjectDatabaseRequest::create([
-            'project_id' => $project->id,
-            'requested_name_suffix' => strtolower($validated['database_name_suffix']),
-            'status' => ProjectDatabaseRequest::STATUS_PENDING,
-        ]);
+        $databaseRequest = DB::transaction(function () use ($request, $project, $validated, $module) {
+            $lockedProject = Project::whereKey($project->id)->lockForUpdate()->firstOrFail();
+            $databaseLimit = $lockedProject->owner->databaseLimitPerProject();
+            $databaseCount = $lockedProject->databases()
+                ->whereIn('status', ['pending', 'active'])
+                ->count()
+                + $lockedProject->databaseRequests()
+                    ->where('status', ProjectDatabaseRequest::STATUS_PENDING)
+                    ->count();
 
-        if (! $project->modules()->where('service_modules.id', $module->id)->exists()) {
-            $project->modules()->attach($module->id, ['status' => 'pending']);
-        }
+            if ($databaseLimit !== null && $databaseCount >= $databaseLimit) {
+                throw ValidationException::withMessages([
+                    'project_id' => "The {$lockedProject->owner->planLimits()['label']} plan allows up to {$databaseLimit} databases for each project.",
+                ]);
+            }
 
-        AuditEvent::create([
-            'actor_id' => $request->user()->id,
-            'project_id' => $project->id,
-            'action' => 'database.requested',
-            'subject_type' => ProjectDatabaseRequest::class,
-            'subject_id' => (string) $databaseRequest->id,
-            'details' => ['project_id' => $project->id, 'requested_name_suffix' => $databaseRequest->requested_name_suffix],
-            'ip_address' => $request->ip(),
-        ]);
+            $databaseRequest = ProjectDatabaseRequest::create([
+                'project_id' => $lockedProject->id,
+                'requested_name_suffix' => strtolower($validated['database_name_suffix']),
+                'status' => ProjectDatabaseRequest::STATUS_PENDING,
+            ]);
+
+            if (! $lockedProject->modules()->where('service_modules.id', $module->id)->exists()) {
+                $lockedProject->modules()->attach($module->id, ['status' => 'pending']);
+            }
+
+            AuditEvent::create([
+                'actor_id' => $request->user()->id,
+                'project_id' => $lockedProject->id,
+                'action' => 'database.requested',
+                'subject_type' => ProjectDatabaseRequest::class,
+                'subject_id' => (string) $databaseRequest->id,
+                'details' => ['project_id' => $lockedProject->id, 'requested_name_suffix' => $databaseRequest->requested_name_suffix],
+                'ip_address' => $request->ip(),
+            ]);
+
+            return $databaseRequest;
+        });
 
         $mailer->admins('New database request · TechwareTz Control Center (TCC)', [
             'eyebrow' => 'Database request',

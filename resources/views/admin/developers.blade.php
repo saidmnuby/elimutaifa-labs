@@ -13,10 +13,12 @@
     <article class="card metric"><div class="metric-label">Awaiting review</div><div class="metric-value">{{ $metrics['pending'] }}</div><div class="metric-note">Need admin action</div></article>
     <article class="card metric"><div class="metric-label">Rejected</div><div class="metric-value">{{ $metrics['rejected'] }}</div><div class="metric-note">Registration not approved</div></article>
     <article class="card metric"><div class="metric-label">Suspended</div><div class="metric-value">{{ $metrics['suspended'] }}</div><div class="metric-note">Access temporarily disabled</div></article>
+    <article class="card metric"><div class="metric-label">Free plan</div><div class="metric-value">{{ $metrics['free'] }}</div><div class="metric-note">5 projects · 5 databases each</div></article>
+    <article class="card metric"><div class="metric-label">Plus plan</div><div class="metric-value">{{ $metrics['plus'] }}</div><div class="metric-note">No project or database count cap</div></article>
 </section>
 <section class="panel">
     <div class="table-wrap"><table>
-        <thead><tr><th>Developer</th><th>GitHub</th><th>Status</th><th>Joined</th><th>Action</th></tr></thead>
+        <thead><tr><th>Developer</th><th>GitHub</th><th>Plan</th><th>Status</th><th>Joined</th><th>Action</th></tr></thead>
         <tbody>
         @forelse ($developers as $developer)
             <tr>
@@ -28,6 +30,17 @@
                     @else
                         —
                     @endif
+                </td>
+                <td>
+                    <span class="badge {{ $developer->isPlus() ? 'active' : 'pending' }}">{{ ucfirst($developer->plan) }}</span>
+                    <form method="post" action="{{ route('admin.developers.plan', $developer) }}" style="display:flex;gap:5px;margin-top:7px">
+                        @csrf @method('PATCH')
+                        <select name="plan" aria-label="Plan for {{ $developer->name }}" style="max-width:110px;padding:5px">
+                            <option value="free" @selected($developer->plan === 'free')>Free</option>
+                            <option value="plus" @selected($developer->plan === 'plus')>Plus</option>
+                        </select>
+                        <button class="button small secondary" type="submit">Save</button>
+                    </form>
                 </td>
                 <td><span class="badge {{ $developer->status }}">{{ ucfirst($developer->status) }}</span></td>
                 <td>{{ $developer->created_at->format('d M Y') }}</td>
@@ -45,7 +58,7 @@
                 </td>
             </tr>
         @empty
-            <tr><td colspan="5" class="muted">No developer accounts have registered yet.</td></tr>
+            <tr><td colspan="6" class="muted">No developer accounts have registered yet.</td></tr>
         @endforelse
         </tbody>
     </table></div>

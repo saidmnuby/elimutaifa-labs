@@ -30,6 +30,10 @@ class ProjectSubmissionController extends Controller
             'githubAppConnected' => (int) $request->session()->get('github_app_installation_id', 0) > 0
                 && is_array($repositories)
                 && $repositories !== [],
+            'projectCount' => $request->user()->projects()
+                ->whereIn('status', [Project::STATUS_PENDING, Project::STATUS_ACTIVE, Project::STATUS_SUSPENDED])
+                ->count(),
+            'projectLimit' => $request->user()->projectLimit(),
         ]);
     }
 
@@ -95,6 +99,17 @@ class ProjectSubmissionController extends Controller
         }
 
         $project = DB::transaction(function () use ($request, $validated, $developer, $githubModule, $installationId, $verifiedRepository) {
+            $lockedDeveloper = User::whereKey($developer->id)->lockForUpdate()->firstOrFail();
+            $projectLimit = $lockedDeveloper->projectLimit();
+            $projectCount = $lockedDeveloper->projects()
+                ->whereIn('status', [Project::STATUS_PENDING, Project::STATUS_ACTIVE, Project::STATUS_SUSPENDED])
+                ->count();
+            if ($projectLimit !== null && $projectCount >= $projectLimit) {
+                throw ValidationException::withMessages([
+                    'repository' => "Your {$lockedDeveloper->planLimits()['label']} plan allows up to {$projectLimit} projects. Upgrade your plan to register more.",
+                ]);
+            }
+
             $slugBase = Str::slug($validated['name']) ?: 'project';
             $slug = $slugBase;
             while (Project::where('slug', $slug)->exists()) {

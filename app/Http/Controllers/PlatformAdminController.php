@@ -29,6 +29,8 @@ class PlatformAdminController extends Controller
                 'pending' => (clone $developerQuery)->where('status', User::STATUS_PENDING)->count(),
                 'rejected' => (clone $developerQuery)->where('status', User::STATUS_REJECTED)->count(),
                 'suspended' => (clone $developerQuery)->where('status', User::STATUS_SUSPENDED)->count(),
+                'free' => (clone $developerQuery)->where('plan', User::PLAN_FREE)->count(),
+                'plus' => (clone $developerQuery)->where('plan', User::PLAN_PLUS)->count(),
             ],
         ]);
     }
@@ -59,6 +61,28 @@ class PlatformAdminController extends Controller
         ]);
 
         return back()->with('success', "The account status for {$user->email} was updated.");
+    }
+
+    public function updateDeveloperPlan(Request $request, User $user): RedirectResponse
+    {
+        if ($user->role !== User::ROLE_DEVELOPER) {
+            abort(404);
+        }
+
+        $validated = $request->validate(['plan' => ['required', Rule::in([User::PLAN_FREE, User::PLAN_PLUS])]]);
+        $oldPlan = $user->plan;
+        $user->forceFill(['plan' => $validated['plan']])->save();
+
+        AuditEvent::create([
+            'actor_id' => $request->user()->id,
+            'action' => 'developer.plan_changed',
+            'subject_type' => User::class,
+            'subject_id' => (string) $user->id,
+            'details' => ['from' => $oldPlan, 'to' => $user->plan],
+            'ip_address' => $request->ip(),
+        ]);
+
+        return back()->with('success', "The plan for {$user->email} was changed to ".ucfirst($user->plan).'.');
     }
 
     public function projects(): View
@@ -146,10 +170,24 @@ class PlatformAdminController extends Controller
         }
 
         DB::transaction(function () use ($request, $project, $databaseRequest, $module, $validated) {
+            $lockedProject = Project::whereKey($project->id)->lockForUpdate()->firstOrFail();
             $lockedRequest = ProjectDatabaseRequest::whereKey($databaseRequest->id)->lockForUpdate()->firstOrFail();
             if ($lockedRequest->status !== ProjectDatabaseRequest::STATUS_PENDING) {
                 throw \Illuminate\Validation\ValidationException::withMessages([
                     'database_request' => 'This request has already been handled.',
+                ]);
+            }
+
+            $databaseLimit = $lockedProject->owner->databaseLimitPerProject();
+            $databaseCount = $lockedProject->databases()
+                ->whereIn('status', ['pending', 'active'])
+                ->count()
+                + $lockedProject->databaseRequests()
+                    ->where('status', ProjectDatabaseRequest::STATUS_PENDING)
+                    ->count();
+            if ($databaseLimit !== null && $databaseCount > $databaseLimit) {
+                throw ValidationException::withMessages([
+                    'database_request' => "This project is over its current plan limit of {$databaseLimit} databases. Update the developer plan before approving this request.",
                 ]);
             }
 

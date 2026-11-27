@@ -14,6 +14,8 @@ class User extends Authenticatable
 
     public const ROLE_ADMIN = 'admin';
     public const ROLE_DEVELOPER = 'developer';
+    public const PLAN_FREE = 'free';
+    public const PLAN_PLUS = 'plus';
     public const STATUS_PENDING = 'pending';
     public const STATUS_ACTIVE = 'active';
     public const STATUS_SUSPENDED = 'suspended';
@@ -65,5 +67,25 @@ class User extends Authenticatable
     public function isAdmin(): bool
     {
         return $this->role === self::ROLE_ADMIN && $this->status === self::STATUS_ACTIVE;
+    }
+
+    public function planLimits(): array
+    {
+        return config('platform.plans.'.$this->plan, config('platform.plans.free'));
+    }
+
+    public function projectLimit(): ?int
+    {
+        return $this->planLimits()['projects'];
+    }
+
+    public function databaseLimitPerProject(): ?int
+    {
+        return $this->planLimits()['databases_per_project'];
+    }
+
+    public function isPlus(): bool
+    {
+        return $this->plan === self::PLAN_PLUS;
     }
 }

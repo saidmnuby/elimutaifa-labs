@@ -16,6 +16,21 @@
     @endif
 </div>
 
+@if (! auth()->user()->isAdmin())
+    @php($databaseLimit = auth()->user()->databaseLimitPerProject())
+    <div class="notice" style="margin-bottom:18px">
+        <strong>{{ ucfirst(auth()->user()->plan) }} plan</strong>
+        @if ($module->key === 'github-deploy')
+            · Projects: {{ $projectCount }}{{ $projectLimit === null ? ' / unlimited' : ' / '.$projectLimit }}
+        @else
+            · Up to {{ $databaseLimit === null ? 'unlimited' : $databaseLimit }} databases per project
+        @endif
+        @if ($module->key === 'github-deploy' && $projectLimit !== null && $projectCount >= $projectLimit)
+            <span> You have reached your project limit.</span>
+        @endif
+    </div>
+@endif
+
 <section class="panel">
     @if (auth()->user()->status !== \App\Models\User::STATUS_ACTIVE)
         <div class="notice warning">Your developer account must be approved before you can use project services.</div>
@@ -50,6 +65,7 @@
         <div class="project-list">
             @foreach ($projects as $project)
                 @php($databaseModule = $project->modules->firstWhere('key', 'database'))
+                @php($databaseUsage = $project->databases->whereIn('status', ['pending', 'active'])->count() + $project->databaseRequests->where('status', 'pending')->count())
                 <article class="project-card">
                     <div class="project-title"><h2>{{ $project->name }}</h2><span class="badge {{ $project->status }}">{{ ucfirst($project->status) }} project</span></div>
                     @if ($project->databaseRequests->isNotEmpty())
@@ -77,8 +93,12 @@
                             @endforeach
                         </div>
                     @endif
-                    <p class="muted" style="margin:14px 0 10px">You can request another separate database for this project at any time.</p>
-                    <a class="button small secondary" href="{{ route('database.request.create', ['project_id' => $project->id]) }}">Request another database</a>
+                    <p class="muted" style="margin:14px 0 10px">Databases: {{ $databaseUsage }}{{ $databaseLimit === null ? ' / unlimited' : ' / '.$databaseLimit }} for this project.</p>
+                    @if ($databaseLimit === null || $databaseUsage < $databaseLimit)
+                        <a class="button small secondary" href="{{ route('database.request.create', ['project_id' => $project->id]) }}">Request another database</a>
+                    @else
+                        <span class="badge pending">Database limit reached</span>
+                    @endif
                 </article>
             @endforeach
         </div>

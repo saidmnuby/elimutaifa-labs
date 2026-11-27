@@ -110,6 +110,7 @@ Route::middleware('auth')->group(function () {
     Route::prefix('admin')->name('admin.')->middleware('can:manage-platform')->group(function () {
         Route::get('/developers', [PlatformAdminController::class, 'developers'])->name('developers');
         Route::patch('/developers/{user}/status', [PlatformAdminController::class, 'updateDeveloperStatus'])->name('developers.status');
+        Route::patch('/developers/{user}/plan', [PlatformAdminController::class, 'updateDeveloperPlan'])->name('developers.plan');
         Route::get('/projects', [PlatformAdminController::class, 'projects'])->name('projects');
         Route::patch('/projects/{project}/reject', [PlatformAdminController::class, 'rejectProject'])->name('projects.reject');
         Route::get('/database-requests', [PlatformAdminController::class, 'databaseRequests'])->name('database-requests');

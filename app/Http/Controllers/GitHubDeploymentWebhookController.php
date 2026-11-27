@@ -113,6 +113,7 @@ class GitHubDeploymentWebhookController extends Controller
                 'branch' => $repository->branch,
                 'target' => $target,
                 'source_sha' => strtolower($commitSha),
+                'storage_limit_mb' => (string) ($project->owner->planLimits()['storage_mb'] ?? 0),
             ]);
         } catch (Throwable $exception) {
             report($exception);

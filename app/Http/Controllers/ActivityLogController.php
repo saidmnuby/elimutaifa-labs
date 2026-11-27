@@ -77,6 +77,7 @@ class ActivityLogController extends Controller
             'deployment.failure' => 'Deployment failed',
             'deployment.cancelled' => 'Deployment cancelled',
             'developer.status_changed' => 'Developer account status changed',
+            'developer.plan_changed' => 'Developer plan changed',
         ];
 
         $activities->getCollection()->transform(function (AuditEvent $event) use ($labels) {
@@ -99,6 +100,8 @@ class ActivityLogController extends Controller
                     ? 'Commit: '.substr((string) data_get($details, 'commit_sha'), 0, 12) : null,
                 'developer.status_changed' => filled(data_get($details, 'to'))
                     ? 'New account status: '.data_get($details, 'to') : null,
+                'developer.plan_changed' => filled(data_get($details, 'to'))
+                    ? 'New plan: '.ucfirst((string) data_get($details, 'to')) : null,
                 default => null,
             };
 
