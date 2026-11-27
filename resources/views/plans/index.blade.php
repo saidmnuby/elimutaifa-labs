@@ -46,9 +46,9 @@
             <p class="plan-summary">Start hosting projects and managing their databases with no subscription fee.</p>
             <div class="plan-divider"></div>
             <ul class="plan-features">
-                <li><span class="plan-check">✓</span><span>Up to <strong>5 projects</strong>, each connected to one GitHub repository and one subdomain.</span></li>
+                <li><span class="plan-check">✓</span><span>Up to <strong>{{ config('platform.plans.free.projects') }} projects</strong>, each connected to one GitHub repository and one subdomain.</span></li>
                 <li><span class="plan-check">✓</span><span><strong>Limited storage</strong> for deployable project files.</span></li>
-                <li><span class="plan-check">✓</span><span>Up to <strong>5 databases per project/subdomain</strong>.</span></li>
+                <li><span class="plan-check">✓</span><span>Up to <strong>{{ config('platform.plans.free.databases_per_project') }} databases per project/subdomain</strong>.</span></li>
                 <li><span class="plan-check">✓</span><span>GitHub push-to-deploy after project approval.</span></li>
                 <li><span class="plan-check">✓</span><span>Database workspace with SQL tools, import, and export.</span></li>
             </ul>

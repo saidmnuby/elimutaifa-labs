@@ -20,8 +20,8 @@ return [
     'plans' => [
         'free' => [
             'label' => 'Free',
-            'projects' => 5,
-            'databases_per_project' => 5,
+            'projects' => 3,
+            'databases_per_project' => 3,
             'storage_mb' => 50,
         ],
         'plus' => [
