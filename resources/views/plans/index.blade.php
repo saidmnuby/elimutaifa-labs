@@ -40,24 +40,24 @@
         <article class="plan-card">
             <div class="plan-top">
                 <h2 class="plan-name">Free</h2>
-                @if ($user->plan === 'free')<span class="plan-current">Your plan</span>@endif
+                @unless ($user->isPlus())<span class="plan-current">Your plan</span>@endunless
             </div>
             <div class="plan-price">TZS 0 <small>/ always</small></div>
             <p class="plan-summary">Start hosting projects and managing their databases with no subscription fee.</p>
             <div class="plan-divider"></div>
             <ul class="plan-features">
                 <li><span class="plan-check">✓</span><span>Up to <strong>5 projects</strong>, each connected to one GitHub repository and one subdomain.</span></li>
-                <li><span class="plan-check">✓</span><span>Up to <strong>100 MB of deployable files per project</strong>, including generated build files.</span></li>
+                <li><span class="plan-check">✓</span><span>Up to <strong>50 MB of deployable files per project</strong>, including generated build files.</span></li>
                 <li><span class="plan-check">✓</span><span>Up to <strong>5 databases per project/subdomain</strong>.</span></li>
                 <li><span class="plan-check">✓</span><span>GitHub push-to-deploy after project approval.</span></li>
                 <li><span class="plan-check">✓</span><span>Database workspace with SQL tools, import, and export.</span></li>
             </ul>
             <div class="plan-action">
-                @if ($user->plan === 'free')
+                @unless ($user->isPlus())
                     <span class="button secondary" aria-current="true">Current plan</span>
                 @else
                     <span class="badge active" style="justify-content:center;width:100%;padding:12px">Free plan available</span>
-                @endif
+                @endunless
             </div>
         </article>
 
@@ -68,26 +68,24 @@
             </div>
             <div class="plan-price">Plus <small>monthly or yearly</small></div>
             <div class="plan-price-options">
-                <span><strong>Monthly</strong><strong>TZS 3,000 / month</strong></span>
-                <span><strong>Yearly</strong><strong>TZS 10,000 / year</strong></span>
+                <span><strong>Monthly</strong><strong>TZS {{ number_format(config('services.selcom.monthly_price')) }} / month</strong></span>
+                <span><strong>Yearly</strong><strong>TZS {{ number_format(config('services.selcom.yearly_price')) }} / year</strong></span>
             </div>
             <p class="plan-summary">Host more projects and databases without the Free plan's count and package-size caps.</p>
             <div class="plan-divider"></div>
             <ul class="plan-features">
-                <li><span class="plan-check">✓</span><span><strong>Unlimited projects</strong>, repositories, and subdomains within available hosting capacity.</span></li>
-                <li><span class="plan-check">✓</span><span><strong>No plan cap on deployment package size</strong>; the hosting account's available disk space still applies.</span></li>
-                <li><span class="plan-check">✓</span><span><strong>Unlimited databases per project</strong>, subject to hosting provider limits.</span></li>
+                <li><span class="plan-check">✓</span><span><strong>Unlimited projects, repositories, and subdomains.</strong></span></li>
+                <li><span class="plan-check">✓</span><span><strong>Unlimited project files and deployments.</strong></span></li>
+                <li><span class="plan-check">✓</span><span><strong>Unlimited databases per project.</strong></span></li>
                 <li><span class="plan-check">✓</span><span>GitHub push-to-deploy after project approval.</span></li>
                 <li><span class="plan-check">✓</span><span>Database workspace with SQL tools, import, and export.</span></li>
             </ul>
             <div class="plan-action">
-                @if ($user->plan === 'plus')
-                    <span class="button secondary" aria-current="true">Your current plan</span>
-                @elseif ($user->role === \App\Models\User::ROLE_DEVELOPER && $user->status === \App\Models\User::STATUS_ACTIVE)
-                    <form method="post" action="{{ route('plans.request-plus') }}">
-                        @csrf
-                        <button class="button" type="submit">Request Plus</button>
-                    </form>
+                @if ($user->role === \App\Models\User::ROLE_DEVELOPER && $user->status === \App\Models\User::STATUS_ACTIVE)
+                    <a class="button" href="{{ route('plans.checkout') }}">{{ $user->isPlus() ? 'Renew Plus' : 'Get Plus' }}</a>
+                    @if ($user->isPlus() && $user->plus_expires_at)
+                        <p class="muted" style="font-size:12px;text-align:center;margin-top:8px">Active until {{ $user->plus_expires_at->format('d M Y') }}</p>
+                    @endif
                 @else
                     <span class="badge pending" style="justify-content:center;width:100%;padding:12px">Admin approval required</span>
                 @endif
@@ -95,6 +93,6 @@
         </article>
     </div>
 
-    <p class="plans-footnote">Plus upgrades are currently activated by the platform admin after receiving your request. Online payment and automatic renewal are not set up yet. All plans use the same shared hosting account, so actual disk capacity and provider restrictions apply.</p>
+    <p class="plans-footnote">Pay securely by mobile money or card. Plus stays active until the end of the selected billing period. Hosting remains subject to the provider's service terms and available resources.</p>
 </div>
 @endsection

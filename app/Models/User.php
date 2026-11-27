@@ -55,6 +55,7 @@ class User extends Authenticatable
         return [
             'email_verified_at' => 'datetime',
             'github_verified_at' => 'datetime',
+            'plus_expires_at' => 'datetime',
             'password' => 'hashed',
         ];
     }
@@ -71,7 +72,7 @@ class User extends Authenticatable
 
     public function planLimits(): array
     {
-        return config('platform.plans.'.$this->plan, config('platform.plans.free'));
+        return config('platform.plans.'.$this->effectivePlan(), config('platform.plans.free'));
     }
 
     public function projectLimit(): ?int
@@ -86,6 +87,16 @@ class User extends Authenticatable
 
     public function isPlus(): bool
     {
-        return $this->plan === self::PLAN_PLUS;
+        return $this->effectivePlan() === self::PLAN_PLUS;
     }
+
+    public function effectivePlan(): string
+    {
+        if ($this->plan === self::PLAN_PLUS && (! $this->plus_expires_at || $this->plus_expires_at->isFuture())) {
+            return self::PLAN_PLUS;
+        }
+
+        return self::PLAN_FREE;
+    }
+
 }

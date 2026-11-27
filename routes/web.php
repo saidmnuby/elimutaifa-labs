@@ -13,12 +13,14 @@ use App\Http\Controllers\GitHubAppInstallationController;
 use App\Http\Controllers\GitHubDeploymentWebhookController;
 use App\Http\Controllers\PlatformAdminController;
 use App\Http\Controllers\PlanController;
+use App\Http\Controllers\PlanPaymentController;
 use App\Http\Controllers\ProjectSubmissionController;
 use App\Http\Controllers\SystemSettingsController;
 use Illuminate\Support\Facades\Route;
 
 Route::post('/github/webhook', [GitHubDeploymentWebhookController::class, 'webhook'])->name('github.webhook');
 Route::post('/github/deployment-callback', [GitHubDeploymentWebhookController::class, 'callback'])->name('github.deployment-callback');
+Route::post('/payments/selcom/webhook', [PlanPaymentController::class, 'webhook'])->name('payments.selcom.webhook');
 
 Route::get('/', fn () => auth()->check()
     ? redirect()->route('dashboard')
@@ -74,8 +76,10 @@ Route::middleware('auth')->group(function () {
         ->middleware('can:manage-platform')->name('activities.index');
     Route::get('/dashboard', DashboardController::class)->name('dashboard');
     Route::get('/plans', [PlanController::class, 'index'])->name('plans.index');
-    Route::post('/plans/request-plus', [PlanController::class, 'requestPlus'])
-        ->middleware('throttle:5,60')->name('plans.request-plus');
+    Route::get('/plans/checkout', [PlanPaymentController::class, 'create'])->name('plans.checkout');
+    Route::post('/plans/checkout', [PlanPaymentController::class, 'store'])
+        ->middleware('throttle:5,60')->name('plans.checkout.store');
+    Route::get('/plans/payment/{payment}', [PlanPaymentController::class, 'show'])->name('plans.payment.show');
     Route::get('/github/connect/project', [GitHubOAuthController::class, 'connectForProject'])
         ->middleware('can:submit-project')->name('github.oauth.project');
     Route::get('/github/app/install', [GitHubAppInstallationController::class, 'start'])

@@ -32,12 +32,12 @@
                     @endif
                 </td>
                 <td>
-                    <span class="badge {{ $developer->isPlus() ? 'active' : 'pending' }}">{{ ucfirst($developer->plan) }}</span>
+                    <span class="badge {{ $developer->isPlus() ? 'active' : 'pending' }}">{{ ucfirst($developer->effectivePlan()) }}</span>
                     <form method="post" action="{{ route('admin.developers.plan', $developer) }}" style="display:flex;gap:5px;margin-top:7px">
                         @csrf @method('PATCH')
                         <select name="plan" aria-label="Plan for {{ $developer->name }}" style="max-width:110px;padding:5px">
-                            <option value="free" @selected($developer->plan === 'free')>Free</option>
-                            <option value="plus" @selected($developer->plan === 'plus')>Plus</option>
+                            <option value="free" @selected($developer->effectivePlan() === 'free')>Free</option>
+                            <option value="plus" @selected($developer->effectivePlan() === 'plus')>Plus</option>
                         </select>
                         <button class="button small secondary" type="submit">Save</button>
                     </form>

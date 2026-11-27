@@ -29,8 +29,16 @@ class PlatformAdminController extends Controller
                 'pending' => (clone $developerQuery)->where('status', User::STATUS_PENDING)->count(),
                 'rejected' => (clone $developerQuery)->where('status', User::STATUS_REJECTED)->count(),
                 'suspended' => (clone $developerQuery)->where('status', User::STATUS_SUSPENDED)->count(),
-                'free' => (clone $developerQuery)->where('plan', User::PLAN_FREE)->count(),
-                'plus' => (clone $developerQuery)->where('plan', User::PLAN_PLUS)->count(),
+                'free' => (clone $developerQuery)->where(function ($query) {
+                    $query->where('plan', User::PLAN_FREE)
+                        ->orWhere(function ($expired) {
+                            $expired->where('plan', User::PLAN_PLUS)->whereNotNull('plus_expires_at')->where('plus_expires_at', '<=', now());
+                        });
+                })->count(),
+                'plus' => (clone $developerQuery)->where('plan', User::PLAN_PLUS)
+                    ->where(function ($query) {
+                        $query->whereNull('plus_expires_at')->orWhere('plus_expires_at', '>', now());
+                    })->count(),
             ],
         ]);
     }
@@ -70,19 +78,19 @@ class PlatformAdminController extends Controller
         }
 
         $validated = $request->validate(['plan' => ['required', Rule::in([User::PLAN_FREE, User::PLAN_PLUS])]]);
-        $oldPlan = $user->plan;
-        $user->forceFill(['plan' => $validated['plan']])->save();
+        $oldPlan = $user->effectivePlan();
+        $user->forceFill(['plan' => $validated['plan'], 'plus_expires_at' => null])->save();
 
         AuditEvent::create([
             'actor_id' => $request->user()->id,
             'action' => 'developer.plan_changed',
             'subject_type' => User::class,
             'subject_id' => (string) $user->id,
-            'details' => ['from' => $oldPlan, 'to' => $user->plan],
+            'details' => ['from' => $oldPlan, 'to' => $user->effectivePlan()],
             'ip_address' => $request->ip(),
         ]);
 
-        return back()->with('success', "The plan for {$user->email} was changed to ".ucfirst($user->plan).'.');
+        return back()->with('success', "The plan for {$user->email} was changed to ".ucfirst($user->effectivePlan()).'.');
     }
 
     public function projects(): View

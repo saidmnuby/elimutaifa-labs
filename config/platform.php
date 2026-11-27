@@ -7,7 +7,7 @@ return [
             'label' => 'Free',
             'projects' => 5,
             'databases_per_project' => 5,
-            'storage_mb' => 100,
+            'storage_mb' => 50,
         ],
         'plus' => [
             'label' => 'Plus',

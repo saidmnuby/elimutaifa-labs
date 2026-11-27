@@ -10,7 +10,7 @@
         <p class="muted" style="margin-top:7px">{{ $module->description }}</p>
     </div>
     <div style="display:flex;gap:9px;flex-wrap:wrap">
-        @if (! auth()->user()->isAdmin() && auth()->user()->plan !== \App\Models\User::PLAN_PLUS)
+        @if (! auth()->user()->isAdmin() && ! auth()->user()->isPlus())
             <a class="button secondary" href="{{ route('plans.index') }}">Get Plus</a>
         @endif
         @if ($module->key === 'github-deploy' && auth()->user()->status === \App\Models\User::STATUS_ACTIVE)
