@@ -27,10 +27,6 @@ class DatabaseWorkspaceController extends Controller
 
         $projects = $request->user()->projects()
             ->where('projects.status', '!=', Project::STATUS_SUSPENDED)
-            ->withCount([
-                'databases as plan_database_count' => fn ($query) => $query->whereIn('status', ['pending', 'active']),
-                'databaseRequests as plan_pending_request_count' => fn ($query) => $query->where('status', ProjectDatabaseRequest::STATUS_PENDING),
-            ])
             ->orderBy('name')
             ->get();
         $selectedProjectId = $projects->contains('id', (int) $request->query('project_id'))

@@ -12,6 +12,7 @@ use App\Http\Controllers\GitHubOAuthController;
 use App\Http\Controllers\GitHubAppInstallationController;
 use App\Http\Controllers\GitHubDeploymentWebhookController;
 use App\Http\Controllers\PlatformAdminController;
+use App\Http\Controllers\PlanController;
 use App\Http\Controllers\ProjectSubmissionController;
 use App\Http\Controllers\SystemSettingsController;
 use Illuminate\Support\Facades\Route;
@@ -72,6 +73,9 @@ Route::middleware('auth')->group(function () {
     Route::get('/activities', [ActivityLogController::class, 'index'])
         ->middleware('can:manage-platform')->name('activities.index');
     Route::get('/dashboard', DashboardController::class)->name('dashboard');
+    Route::get('/plans', [PlanController::class, 'index'])->name('plans.index');
+    Route::post('/plans/request-plus', [PlanController::class, 'requestPlus'])
+        ->middleware('throttle:5,60')->name('plans.request-plus');
     Route::get('/github/connect/project', [GitHubOAuthController::class, 'connectForProject'])
         ->middleware('can:submit-project')->name('github.oauth.project');
     Route::get('/github/app/install', [GitHubAppInstallationController::class, 'start'])

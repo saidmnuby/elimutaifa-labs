@@ -70,13 +70,6 @@
 </style>
 
 <div class="onboarding-shell">
-    <div class="notice" style="margin-bottom:18px">
-        <strong>{{ ucfirst(auth()->user()->plan) }} plan</strong>
-        · Projects used: {{ $projectCount }}{{ $projectLimit === null ? ' / unlimited' : ' / '.$projectLimit }}
-        @if ($projectLimit !== null && $projectCount >= $projectLimit)
-            <span> You have reached your project limit. Ask the admin to upgrade your plan.</span>
-        @endif
-    </div>
     <header class="onboarding-heading">
         <div>
             <p class="eyebrow">Developer · GitHub deployment</p>
@@ -211,7 +204,7 @@
 
                     <div class="onboarding-footer">
                         <p class="onboarding-footer-note">Submitting sends a request for admin review. It does not start deployment or create a database.</p>
-                        <button class="button onboarding-submit" type="submit" @disabled($projectLimit !== null && $projectCount >= $projectLimit)>Send project request</button>
+                        <button class="button onboarding-submit" type="submit">Send project request</button>
                     </div>
                 </form>
             @endif

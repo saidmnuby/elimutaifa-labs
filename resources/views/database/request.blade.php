@@ -24,10 +24,7 @@
             <select id="project_id" name="project_id" required>
                 <option value="">Choose your project</option>
                 @foreach ($projects as $project)
-                    @php($projectDatabaseCount = $project->plan_database_count + $project->plan_pending_request_count)
-                    <option value="{{ $project->id }}" @disabled(auth()->user()->databaseLimitPerProject() !== null && $projectDatabaseCount >= auth()->user()->databaseLimitPerProject()) @selected((string) old('project_id', $selectedProjectId) === (string) $project->id)>
-                        {{ $project->name }} · {{ $projectDatabaseCount }}{{ auth()->user()->databaseLimitPerProject() === null ? ' / unlimited databases' : ' / '.auth()->user()->databaseLimitPerProject().' databases' }}{{ auth()->user()->databaseLimitPerProject() !== null && $projectDatabaseCount >= auth()->user()->databaseLimitPerProject() ? ' · limit reached' : '' }}
-                    </option>
+                    <option value="{{ $project->id }}" @selected((string) old('project_id', $selectedProjectId) === (string) $project->id)>{{ $project->name }}</option>
                 @endforeach
             </select>
             @error('project_id')<small class="error">{{ $message }}</small>@enderror

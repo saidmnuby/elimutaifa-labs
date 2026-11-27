@@ -30,10 +30,6 @@ class ProjectSubmissionController extends Controller
             'githubAppConnected' => (int) $request->session()->get('github_app_installation_id', 0) > 0
                 && is_array($repositories)
                 && $repositories !== [],
-            'projectCount' => $request->user()->projects()
-                ->whereIn('status', [Project::STATUS_PENDING, Project::STATUS_ACTIVE, Project::STATUS_SUSPENDED])
-                ->count(),
-            'projectLimit' => $request->user()->projectLimit(),
         ]);
     }
 
@@ -106,7 +102,7 @@ class ProjectSubmissionController extends Controller
                 ->count();
             if ($projectLimit !== null && $projectCount >= $projectLimit) {
                 throw ValidationException::withMessages([
-                    'repository' => "Your {$lockedDeveloper->planLimits()['label']} plan allows up to {$projectLimit} projects. Upgrade your plan to register more.",
+                    'repository' => "Your {$lockedDeveloper->planLimits()['label']} plan has reached its project limit. Open Plans & pricing to request an upgrade.",
                 ]);
             }
 

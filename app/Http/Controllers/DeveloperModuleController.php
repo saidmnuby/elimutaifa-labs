@@ -22,12 +22,6 @@ class DeveloperModuleController extends Controller
             ->latest()
             ->get();
 
-        $developer = auth()->user();
-        $projectCount = $developer->projects()
-            ->whereIn('status', ['pending', 'active', 'suspended'])
-            ->count();
-        $projectLimit = $developer->projectLimit();
-
-        return view('modules.show', compact('module', 'projects', 'developer', 'projectCount', 'projectLimit'));
+        return view('modules.show', compact('module', 'projects'));
     }
 }

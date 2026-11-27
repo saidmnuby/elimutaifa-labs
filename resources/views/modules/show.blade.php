@@ -9,27 +9,17 @@
         <h1>{{ $module->name }}</h1>
         <p class="muted" style="margin-top:7px">{{ $module->description }}</p>
     </div>
-    @if ($module->key === 'github-deploy' && auth()->user()->status === \App\Models\User::STATUS_ACTIVE)
-        <a class="button" href="{{ route('projects.create') }}">Register repository</a>
-    @elseif ($module->key === 'database' && auth()->user()->status === \App\Models\User::STATUS_ACTIVE)
-        <a class="button" href="{{ route('database.request.create') }}">Request a database</a>
-    @endif
-</div>
-
-@if (! auth()->user()->isAdmin())
-    @php($databaseLimit = auth()->user()->databaseLimitPerProject())
-    <div class="notice" style="margin-bottom:18px">
-        <strong>{{ ucfirst(auth()->user()->plan) }} plan</strong>
-        @if ($module->key === 'github-deploy')
-            · Projects: {{ $projectCount }}{{ $projectLimit === null ? ' / unlimited' : ' / '.$projectLimit }}
-        @else
-            · Up to {{ $databaseLimit === null ? 'unlimited' : $databaseLimit }} databases per project
+    <div style="display:flex;gap:9px;flex-wrap:wrap">
+        @if (! auth()->user()->isAdmin() && auth()->user()->plan !== \App\Models\User::PLAN_PLUS)
+            <a class="button secondary" href="{{ route('plans.index') }}">Get Plus</a>
         @endif
-        @if ($module->key === 'github-deploy' && $projectLimit !== null && $projectCount >= $projectLimit)
-            <span> You have reached your project limit.</span>
+        @if ($module->key === 'github-deploy' && auth()->user()->status === \App\Models\User::STATUS_ACTIVE)
+            <a class="button" href="{{ route('projects.create') }}">Register repository</a>
+        @elseif ($module->key === 'database' && auth()->user()->status === \App\Models\User::STATUS_ACTIVE)
+            <a class="button" href="{{ route('database.request.create') }}">Request a database</a>
         @endif
     </div>
-@endif
+</div>
 
 <section class="panel">
     @if (auth()->user()->status !== \App\Models\User::STATUS_ACTIVE)
@@ -65,7 +55,6 @@
         <div class="project-list">
             @foreach ($projects as $project)
                 @php($databaseModule = $project->modules->firstWhere('key', 'database'))
-                @php($databaseUsage = $project->databases->whereIn('status', ['pending', 'active'])->count() + $project->databaseRequests->where('status', 'pending')->count())
                 <article class="project-card">
                     <div class="project-title"><h2>{{ $project->name }}</h2><span class="badge {{ $project->status }}">{{ ucfirst($project->status) }} project</span></div>
                     @if ($project->databaseRequests->isNotEmpty())
@@ -93,12 +82,7 @@
                             @endforeach
                         </div>
                     @endif
-                    <p class="muted" style="margin:14px 0 10px">Databases: {{ $databaseUsage }}{{ $databaseLimit === null ? ' / unlimited' : ' / '.$databaseLimit }} for this project.</p>
-                    @if ($databaseLimit === null || $databaseUsage < $databaseLimit)
-                        <a class="button small secondary" href="{{ route('database.request.create', ['project_id' => $project->id]) }}">Request another database</a>
-                    @else
-                        <span class="badge pending">Database limit reached</span>
-                    @endif
+                    <a class="button small secondary" href="{{ route('database.request.create', ['project_id' => $project->id]) }}">Request another database</a>
                 </article>
             @endforeach
         </div>

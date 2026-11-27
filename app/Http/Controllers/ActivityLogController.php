@@ -78,6 +78,7 @@ class ActivityLogController extends Controller
             'deployment.cancelled' => 'Deployment cancelled',
             'developer.status_changed' => 'Developer account status changed',
             'developer.plan_changed' => 'Developer plan changed',
+            'plan.upgrade_requested' => 'Requested Plus plan',
         ];
 
         $activities->getCollection()->transform(function (AuditEvent $event) use ($labels) {
@@ -102,6 +103,7 @@ class ActivityLogController extends Controller
                     ? 'New account status: '.data_get($details, 'to') : null,
                 'developer.plan_changed' => filled(data_get($details, 'to'))
                     ? 'New plan: '.ucfirst((string) data_get($details, 'to')) : null,
+                'plan.upgrade_requested' => 'Requested Plus plan',
                 default => null,
             };
 
