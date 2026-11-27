@@ -73,6 +73,7 @@
                     <div class="sidebar-heading">Admin</div>
                     <a class="sidebar-link {{ request()->routeIs('dashboard') ? 'active' : '' }}" href="{{ route('dashboard') }}"><span class="sidebar-icon">O</span>Overview</a>
                     <a class="sidebar-link {{ request()->routeIs('admin.developers*') ? 'active' : '' }}" href="{{ route('admin.developers') }}"><span class="sidebar-icon">D</span>Developers</a>
+                    <a class="sidebar-link {{ request()->routeIs('admin.payment-requests*') ? 'active' : '' }}" href="{{ route('admin.payment-requests') }}"><span class="sidebar-icon">$</span>Payment requests</a>
                     <a class="sidebar-link {{ request()->routeIs('admin.projects*') ? 'active' : '' }}" href="{{ route('admin.projects') }}"><span class="sidebar-icon">P</span>Projects</a>
                     <a class="sidebar-link {{ request()->routeIs('admin.database-requests*') ? 'active' : '' }}" href="{{ route('admin.database-requests') }}"><span class="sidebar-icon">DB</span>Database requests</a>
                     <a class="sidebar-link {{ request()->routeIs('activities.*') ? 'active' : '' }}" href="{{ route('activities.index') }}"><span class="sidebar-icon">A</span>Activity log</a>

@@ -68,8 +68,8 @@
             </div>
             <div class="plan-price">Plus <small>monthly or yearly</small></div>
             <div class="plan-price-options">
-                <span><strong>Monthly</strong><strong>TZS {{ number_format(config('services.selcom.monthly_price')) }} / month</strong></span>
-                <span><strong>Yearly</strong><strong>TZS {{ number_format(config('services.selcom.yearly_price')) }} / year</strong></span>
+                <span><strong>Monthly</strong><strong>TZS {{ number_format(config('platform.plus_pricing.monthly')) }} / month</strong></span>
+                <span><strong>Yearly</strong><strong>TZS {{ number_format(config('platform.plus_pricing.yearly')) }} / year</strong></span>
             </div>
             <p class="plan-summary">Host more projects and databases without the Free plan's count and package-size caps.</p>
             <div class="plan-divider"></div>
@@ -93,6 +93,6 @@
         </article>
     </div>
 
-    <p class="plans-footnote">Pay securely by mobile money or card. Plus stays active until the end of the selected billing period. Hosting remains subject to the provider's service terms and available resources.</p>
+    <p class="plans-footnote">Pay by bank or mobile money and submit your transaction reference. Plus is activated after an admin verifies the payment. Hosting remains subject to available resources.</p>
 </div>
 @endsection

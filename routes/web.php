@@ -14,14 +14,13 @@ use App\Http\Controllers\GitHubDeploymentWebhookController;
 use App\Http\Controllers\PlatformAdminController;
 use App\Http\Controllers\PlanController;
 use App\Http\Controllers\PlanPaymentController;
+use App\Http\Controllers\AdminPlanPaymentController;
 use App\Http\Controllers\ProjectSubmissionController;
 use App\Http\Controllers\SystemSettingsController;
 use Illuminate\Support\Facades\Route;
 
 Route::post('/github/webhook', [GitHubDeploymentWebhookController::class, 'webhook'])->name('github.webhook');
 Route::post('/github/deployment-callback', [GitHubDeploymentWebhookController::class, 'callback'])->name('github.deployment-callback');
-Route::post('/payments/selcom/webhook', [PlanPaymentController::class, 'webhook'])->name('payments.selcom.webhook');
-
 Route::get('/', fn () => auth()->check()
     ? redirect()->route('dashboard')
     : response()->view('welcome'));
@@ -117,6 +116,9 @@ Route::middleware('auth')->group(function () {
 
     Route::prefix('admin')->name('admin.')->middleware('can:manage-platform')->group(function () {
         Route::get('/developers', [PlatformAdminController::class, 'developers'])->name('developers');
+        Route::get('/payment-requests', [AdminPlanPaymentController::class, 'index'])->name('payment-requests');
+        Route::post('/payment-requests/{payment}/approve', [AdminPlanPaymentController::class, 'approve'])->name('payment-requests.approve');
+        Route::post('/payment-requests/{payment}/reject', [AdminPlanPaymentController::class, 'reject'])->name('payment-requests.reject');
         Route::patch('/developers/{user}/status', [PlatformAdminController::class, 'updateDeveloperStatus'])->name('developers.status');
         Route::patch('/developers/{user}/plan', [PlatformAdminController::class, 'updateDeveloperPlan'])->name('developers.plan');
         Route::get('/projects', [PlatformAdminController::class, 'projects'])->name('projects');

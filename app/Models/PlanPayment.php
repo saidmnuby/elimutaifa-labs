@@ -14,7 +14,7 @@ class PlanPayment extends Model
     protected $fillable = [
         'user_id', 'order_id', 'billing_cycle', 'amount', 'currency', 'payment_method',
         'status', 'provider_reference', 'provider_transaction_id', 'provider_channel',
-        'buyer_phone', 'paid_at', 'period_ends_at', 'provider_payload',
+        'buyer_phone', 'paid_at', 'period_ends_at', 'provider_payload', 'reviewed_by', 'reviewed_at', 'review_note',
     ];
 
     protected function casts(): array
@@ -23,11 +23,17 @@ class PlanPayment extends Model
             'paid_at' => 'datetime',
             'period_ends_at' => 'datetime',
             'provider_payload' => 'array',
+            'reviewed_at' => 'datetime',
         ];
     }
 
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
+    }
+
+    public function reviewer(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'reviewed_by');
     }
 }
