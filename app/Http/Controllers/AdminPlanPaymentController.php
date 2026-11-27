@@ -3,12 +3,15 @@
 namespace App\Http\Controllers;
 
 use App\Models\AuditEvent;
+use App\Models\PaymentReceipt;
 use App\Models\PlanPayment;
 use App\Models\User;
+use App\Support\PlanPaymentApprovalService;
 use App\Support\SystemMailer;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 
@@ -17,71 +20,90 @@ class AdminPlanPaymentController extends Controller
     public function index(): View
     {
         return view('admin.payment-requests', [
-            'payments' => PlanPayment::with('user')->where('status', PlanPayment::STATUS_PENDING)->latest()->paginate(20),
+            'payments' => PlanPayment::with('user')->where('status', PlanPayment::STATUS_PENDING)->latest()->paginate(20, ['*'], 'pending_page'),
+            'developers' => User::where('role', User::ROLE_DEVELOPER)->latest()->paginate(20, ['*'], 'developers_page'),
+            'receipts' => PaymentReceipt::with('recorder')->whereNull('plan_payment_id')->latest('recorded_at')->limit(20)->get(),
+            'paymentAccounts' => config('platform.payment_accounts'),
         ]);
     }
 
-    public function approve(Request $request, PlanPayment $payment, SystemMailer $mailer): RedirectResponse
+    public function storeReceipt(Request $request, PlanPaymentApprovalService $approval, SystemMailer $mailer): RedirectResponse
     {
-        $wasApproved = DB::transaction(function () use ($request, $payment) {
-            $lockedPayment = PlanPayment::query()->whereKey($payment->id)->lockForUpdate()->firstOrFail();
-            if ($lockedPayment->status !== PlanPayment::STATUS_PENDING) {
-                throw ValidationException::withMessages(['payment' => 'This payment request has already been reviewed.']);
-            }
+        $request->merge(['transaction_reference' => trim((string) $request->input('transaction_reference'))]);
+        $validated = $request->validate([
+            'transaction_reference' => ['required', 'string', 'max:100', Rule::unique('payment_receipts', 'transaction_reference')],
+            'amount' => ['required', 'integer', 'min:1', 'max:1000000000'],
+            'channel' => ['required', Rule::in(array_keys(config('platform.payment_accounts', [])))],
+            'notes' => ['nullable', 'string', 'max:500'],
+        ]);
 
-            if (! $lockedPayment->provider_transaction_id) {
-                throw ValidationException::withMessages(['payment' => 'This request has no transaction reference.']);
-            }
+        $reference = trim($validated['transaction_reference']);
+        $receipt = PaymentReceipt::create([
+            'transaction_reference' => $reference,
+            'amount' => $validated['amount'],
+            'channel' => $validated['channel'],
+            'recorded_by' => $request->user()->id,
+            'notes' => $validated['notes'] ?? null,
+            'recorded_at' => now(),
+        ]);
+        AuditEvent::create([
+            'actor_id' => $request->user()->id,
+            'action' => 'payment.receipt_recorded',
+            'subject_type' => PaymentReceipt::class,
+            'subject_id' => (string) $receipt->id,
+            'details' => [
+                'transaction_reference' => $receipt->transaction_reference,
+                'amount' => $receipt->amount,
+                'channel' => $receipt->channel,
+            ],
+            'ip_address' => $request->ip(),
+        ]);
 
-            $user = User::query()->whereKey($lockedPayment->user_id)->lockForUpdate()->firstOrFail();
-            $start = $user->plus_expires_at && $user->plus_expires_at->isFuture()
-                ? $user->plus_expires_at->copy()
-                : now();
-            $periodEndsAt = $lockedPayment->billing_cycle === 'yearly' ? $start->addYear() : $start->addMonth();
+        $payment = PlanPayment::query()
+            ->where('provider_transaction_id', $reference)
+            ->where('status', PlanPayment::STATUS_PENDING)
+            ->first();
 
-            $lockedPayment->forceFill([
-                'status' => PlanPayment::STATUS_PAID,
-                'paid_at' => now(),
-                'period_ends_at' => $periodEndsAt,
-                'reviewed_by' => $request->user()->id,
-                'reviewed_at' => now(),
-            ])->save();
-            $user->forceFill(['plan' => User::PLAN_PLUS, 'plus_expires_at' => $periodEndsAt])->save();
-
-            AuditEvent::create([
-                'actor_id' => $request->user()->id,
-                'action' => 'plan.payment_approved',
-                'subject_type' => PlanPayment::class,
-                'subject_id' => (string) $lockedPayment->id,
-                'details' => [
-                    'user_id' => $user->id,
-                    'amount' => $lockedPayment->amount,
-                    'billing_cycle' => $lockedPayment->billing_cycle,
-                    'transaction_reference' => $lockedPayment->provider_transaction_id,
-                    'period_ends_at' => $periodEndsAt->toIso8601String(),
-                ],
-                'ip_address' => $request->ip(),
-            ]);
-
-            return true;
-        });
-
-        if ($wasApproved) {
-            $payment->refresh();
-            $mailer->to($payment->user->email, 'Your Plus plan is active · TechwareTz Control Center', [
-                'eyebrow' => 'Payment confirmed',
-                'title' => 'Your Plus plan is active',
-                'intro' => 'We verified your payment and activated Plus on your account.',
-                'details' => [
-                    'Amount' => 'TZS '.number_format($payment->amount),
-                    'Billing cycle' => ucfirst($payment->billing_cycle),
-                    'Active until' => $payment->period_ends_at?->format('d M Y'),
-                    'Transaction reference' => $payment->provider_transaction_id,
-                ],
-                'button_label' => 'View plans',
-                'button_url' => route('plans.index'),
-            ]);
+        if (! $payment) {
+            return redirect()->route('admin.payment-requests')
+                ->with('success', 'Verified transaction saved. A matching payment request will be approved automatically when submitted.');
         }
+
+        if ((int) $payment->amount !== (int) $receipt->amount || $payment->payment_method !== $receipt->channel) {
+            return redirect()->route('admin.payment-requests')->with('warning',
+                'Transaction saved, but the pending request has a different amount or destination. Review it manually before approval.');
+        }
+
+        $payment = $approval->approve($payment, $request->user()->id, (string) $request->ip(), automatic: true);
+        $this->notifyActivatedDeveloper($payment, $mailer, true);
+
+        return redirect()->route('admin.payment-requests')->with('success', 'Transaction matched. Plus was activated automatically.');
+    }
+
+    public function deleteReceipt(Request $request, PaymentReceipt $receipt): RedirectResponse
+    {
+        if ($receipt->plan_payment_id !== null) {
+            return back()->withErrors(['receipt' => 'A transaction linked to a reviewed payment cannot be deleted.']);
+        }
+
+        $reference = $receipt->transaction_reference;
+        $receipt->delete();
+        AuditEvent::create([
+            'actor_id' => $request->user()->id,
+            'action' => 'payment.receipt_removed',
+            'subject_type' => PaymentReceipt::class,
+            'subject_id' => (string) $receipt->id,
+            'details' => ['transaction_reference' => $reference],
+            'ip_address' => $request->ip(),
+        ]);
+
+        return redirect()->route('admin.payment-requests')->with('success', 'Unmatched transaction record removed.');
+    }
+
+    public function approve(Request $request, PlanPayment $payment, PlanPaymentApprovalService $approval, SystemMailer $mailer): RedirectResponse
+    {
+        $payment = $approval->approve($payment, $request->user()->id, (string) $request->ip());
+        $this->notifyActivatedDeveloper($payment, $mailer);
 
         return redirect()->route('admin.payment-requests')->with('success', 'Payment verified and Plus activated.');
     }
@@ -133,5 +155,47 @@ class AdminPlanPaymentController extends Controller
         ]);
 
         return redirect()->route('admin.payment-requests')->with('success', 'Payment request rejected. The developer was notified.');
+    }
+
+    public function updatePlan(Request $request, User $user): RedirectResponse
+    {
+        abort_unless($user->role === User::ROLE_DEVELOPER, 404);
+        $validated = $request->validate(['plan' => ['required', Rule::in([User::PLAN_FREE, User::PLAN_PLUS])]]);
+        $oldPlan = $user->effectivePlan();
+        $expiresAt = $validated['plan'] === User::PLAN_PLUS && $user->isPlus()
+            ? $user->plus_expires_at
+            : null;
+        $user->forceFill(['plan' => $validated['plan'], 'plus_expires_at' => $expiresAt])->save();
+
+        AuditEvent::create([
+            'actor_id' => $request->user()->id,
+            'action' => 'developer.plan_changed',
+            'subject_type' => User::class,
+            'subject_id' => (string) $user->id,
+            'details' => ['from' => $oldPlan, 'to' => $user->effectivePlan()],
+            'ip_address' => $request->ip(),
+        ]);
+
+        return redirect()->route('admin.payment-requests')->with('success', "The plan for {$user->email} was changed to ".ucfirst($user->effectivePlan()).'.');
+    }
+
+    private function notifyActivatedDeveloper(PlanPayment $payment, SystemMailer $mailer, bool $automatic = false): void
+    {
+        $payment->refresh();
+        $mailer->to($payment->user->email, 'Your Plus plan is active · TechwareTz Control Center', [
+            'eyebrow' => 'Payment confirmed',
+            'title' => 'Your Plus plan is active',
+            'intro' => $automatic
+                ? 'Your transaction matched a payment already verified by the admin.'
+                : 'We verified your payment and activated Plus on your account.',
+            'details' => [
+                'Amount' => 'TZS '.number_format($payment->amount),
+                'Billing cycle' => ucfirst($payment->billing_cycle),
+                'Active until' => $payment->period_ends_at?->format('d M Y'),
+                'Transaction reference' => $payment->provider_transaction_id,
+            ],
+            'button_label' => 'View plans',
+            'button_url' => route('plans.index'),
+        ]);
     }
 }

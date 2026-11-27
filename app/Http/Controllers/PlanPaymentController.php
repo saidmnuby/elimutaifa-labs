@@ -4,8 +4,10 @@ namespace App\Http\Controllers;
 
 use App\Models\AuditEvent;
 use App\Models\PlanPayment;
+use App\Models\PaymentReceipt;
 use App\Models\User;
 use App\Support\SystemMailer;
+use App\Support\PlanPaymentApprovalService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -40,10 +42,11 @@ class PlanPaymentController extends Controller
         ]);
     }
 
-    public function store(Request $request, SystemMailer $mailer): RedirectResponse
+    public function store(Request $request, SystemMailer $mailer, PlanPaymentApprovalService $approval): RedirectResponse
     {
         $user = $request->user();
         abort_unless($user->role === User::ROLE_DEVELOPER && $user->status === User::STATUS_ACTIVE, 403);
+        $request->merge(['transaction_reference' => trim((string) $request->input('transaction_reference'))]);
 
         $validated = $request->validate([
             'billing_cycle' => ['required', Rule::in(['monthly', 'yearly'])],
@@ -81,6 +84,30 @@ class PlanPaymentController extends Controller
             'provider_payload' => ['verification_type' => 'manual'],
         ]);
 
+        $receipt = PaymentReceipt::query()
+            ->where('transaction_reference', $transactionReference)
+            ->whereNull('plan_payment_id')
+            ->first();
+        if ($receipt && (int) $receipt->amount === $amount && $receipt->channel === $validated['payment_method']) {
+            $payment = $approval->approve($payment, $receipt->recorded_by, (string) $request->ip(), automatic: true);
+            $mailer->to($user->email, 'Your Plus plan is active · TechwareTz Control Center', [
+                'eyebrow' => 'Payment confirmed',
+                'title' => 'Your Plus plan is active',
+                'intro' => 'Your transaction reference matched a payment already verified by the admin.',
+                'details' => [
+                    'Amount' => 'TZS '.number_format($payment->amount),
+                    'Billing cycle' => ucfirst($payment->billing_cycle),
+                    'Active until' => $payment->period_ends_at?->format('d M Y'),
+                    'Transaction reference' => $payment->provider_transaction_id,
+                ],
+                'button_label' => 'View plans',
+                'button_url' => route('plans.index'),
+            ]);
+
+            return redirect()->route('plans.payment.show', $payment)
+                ->with('success', 'Your verified transaction was matched and Plus is active.');
+        }
+
         $mailer->admins('New Plus payment reference · TechwareTz Control Center', [
             'eyebrow' => 'Payment review required',
             'title' => 'A developer submitted a payment reference',
@@ -92,6 +119,7 @@ class PlanPaymentController extends Controller
                 'Amount' => 'TZS '.number_format($payment->amount),
                 'Paid to' => $account['label'].' · '.$account['number'],
                 'Transaction reference' => $transactionReference,
+                'Receipt match' => $receipt ? 'Reference exists but account or amount differs; manual review required.' : 'No verified receipt has been logged yet.',
             ],
             'button_label' => 'Review payment requests',
             'button_url' => route('admin.payment-requests'),

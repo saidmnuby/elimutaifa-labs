@@ -71,28 +71,6 @@ class PlatformAdminController extends Controller
         return back()->with('success', "The account status for {$user->email} was updated.");
     }
 
-    public function updateDeveloperPlan(Request $request, User $user): RedirectResponse
-    {
-        if ($user->role !== User::ROLE_DEVELOPER) {
-            abort(404);
-        }
-
-        $validated = $request->validate(['plan' => ['required', Rule::in([User::PLAN_FREE, User::PLAN_PLUS])]]);
-        $oldPlan = $user->effectivePlan();
-        $user->forceFill(['plan' => $validated['plan'], 'plus_expires_at' => null])->save();
-
-        AuditEvent::create([
-            'actor_id' => $request->user()->id,
-            'action' => 'developer.plan_changed',
-            'subject_type' => User::class,
-            'subject_id' => (string) $user->id,
-            'details' => ['from' => $oldPlan, 'to' => $user->effectivePlan()],
-            'ip_address' => $request->ip(),
-        ]);
-
-        return back()->with('success', "The plan for {$user->email} was changed to ".ucfirst($user->effectivePlan()).'.');
-    }
-
     public function projects(): View
     {
         $projectQuery = Project::query();
